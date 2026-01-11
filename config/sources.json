@@ -1,0 +1,69 @@
+[
+  {
+    "id": "fantaiying",
+    "name": "饭太硬",
+    "url": "http://www.xn--sss604efuw.com/tv/",
+    "priority": 100,
+    "tags": ["推荐", "稳定", "点播"],
+    "isRecursive": true,
+    "maxDepth": 2,
+    "enabled": true
+  },
+  {
+    "id": "qingning",
+    "name": "青柠",
+    "url": "https://github.com/Zhou-Li-Bin/Tvbox-QingNing/raw/main/json/green.json",
+    "priority": 95,
+    "tags": ["GitHub", "多仓", "推荐"],
+    "isRecursive": true,
+    "maxDepth": 3,
+    "enabled": true
+  },
+  {
+    "id": "weixine",
+    "name": "weixine",
+    "url": "https://weixine.net/ysc.json",
+    "priority": 90,
+    "tags": ["直播", "稳定"],
+    "isRecursive": false,
+    "enabled": true
+  },
+  {
+    "id": "feimao-github",
+    "name": "肥猫镜像",
+    "url": "https://github.com/Ftindy/IPTV/raw/main/json/ft.json",
+    "priority": 85,
+    "tags": ["GitHub", "备用"],
+    "isRecursive": false,
+    "enabled": true
+  },
+  {
+    "id": "gitlab-apps",
+    "name": "GitLab Apps",
+    "url": "https://gitlab.com/duomv/apps/-/raw/main/fast.json",
+    "priority": 80,
+    "tags": ["GitLab", "多仓"],
+    "isRecursive": true,
+    "maxDepth": 2,
+    "enabled": true
+  },
+  {
+    "id": "agit-apps",
+    "name": "Agit Apps",
+    "url": "https://agit.ai/leevi/apps/raw/branch/main/fast.json",
+    "priority": 75,
+    "tags": ["Agit", "国内", "多仓"],
+    "isRecursive": true,
+    "maxDepth": 2,
+    "enabled": true
+  },
+  {
+    "id": "tv58888",
+    "name": "TV58888",
+    "url": "https://raw.githubusercontent.com/tv58888/tvbox/main/json/tv.json",
+    "priority": 70,
+    "tags": ["GitHub", "推荐"],
+    "isRecursive": false,
+    "enabled": true
+  }
+]

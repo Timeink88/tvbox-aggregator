@@ -1,0 +1,30 @@
+# .gitignore for TVBox Aggregator
+
+# Deno
+.deno/
+*.log
+
+# Reports
+reports/
+
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build
+dist/
+build/
