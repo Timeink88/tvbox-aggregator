@@ -2,7 +2,7 @@
  * 配置路由
  */
 import { Router } from "oak";
-import { AggregateConfigUseCase, AggregateOptions } from "../../application/use-cases/aggregate-config.use-case.ts";
+import { AggregateConfigUseCase, AggregateOptions } from "../../../application/use-cases/aggregate-config.use-case.ts";
 
 export function createConfigRoute(useCase: AggregateConfigUseCase): Router {
   const router = new Router();

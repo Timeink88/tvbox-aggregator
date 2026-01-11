@@ -2,7 +2,7 @@
  * 健康检查路由
  */
 import { Router } from "oak";
-import { HealthCheckUseCase } from "../../application/use-cases/health-check.use-case.ts";
+import { HealthCheckUseCase } from "../../../application/use-cases/health-check.use-case.ts";
 
 export function createHealthRoute(useCase: HealthCheckUseCase): Router {
   const router = new Router();

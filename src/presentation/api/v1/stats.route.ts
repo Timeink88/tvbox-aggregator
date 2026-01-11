@@ -2,7 +2,7 @@
  * 统计路由
  */
 import { Router } from "oak";
-import { CacheManagerService, CacheStats } from "../../application/services/cache-manager.service.ts";
+import { CacheManagerService, CacheStats } from "../../../application/services/cache-manager.service.ts";
 
 export function createStatsRoute(cacheService: CacheManagerService): Router {
   const router = new Router();
