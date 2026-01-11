@@ -56,14 +56,21 @@ app.use(async (ctx) => {
     status: "ok",
     version: "1.0.0",
     timestamp: new Date().toISOString(),
+    endpoints: {
+      config: "/api/config",
+      health: "/api/health",
+      stats: "/api/stats",
+      admin: "/admin",
+    },
   };
 });
 
-// 启动服务器
-const port = parseInt(Deno.env.get("PORT") || "8000");
-console.log(`🚀 Server running on http://localhost:${port}`);
-
-await app.listen({ port });
+// 启动服务器（仅在本地开发环境）
+if (import.meta.main) {
+  const port = parseInt(Deno.env.get("PORT") || "8000");
+  console.log(`🚀 Server running on http://localhost:${port}`);
+  await app.listen({ port });
+}
 
 // Deno Deploy 导出
 export default app;
