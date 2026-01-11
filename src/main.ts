@@ -133,8 +133,31 @@ app.use(async (ctx, next) => {
   });
 });
 
-// Deno Deploy 导出
-export default app;
+// Deno Deploy 导出 - 使用 fetch 函数格式
+export default {
+  async fetch(request: Request): Promise<Response> {
+    // 将 Request 转换为 Oak 能处理的格式
+    const url = new URL(request.url);
+
+    // 创建一个兼容的请求对象
+    const oakRequest = {
+      url,
+      method: request.method,
+      headers: request.headers,
+      body: request.body,
+      request,
+    };
+
+    // 使用 Oak Application 处理请求
+    const response = await app.handle(oakRequest as any);
+
+    // 转换响应为标准的 Response
+    return new Response(response.body, {
+      status: response.status,
+      headers: response.headers,
+    });
+  },
+};
 
 // 启动服务器（仅在本地开发环境）
 const isLocalDev = !Deno.env.get("DENO_DEPLOYMENT_ID");
