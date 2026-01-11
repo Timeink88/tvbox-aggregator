@@ -69,19 +69,21 @@ app.use(corsMiddleware);
 app.use(errorHandlerMiddleware);
 app.use(cacheMiddleware);
 
-// 根路径健康检查（优先级最高，必须在路由之前）
-app.get("/", async (ctx) => {
-  ctx.response.body = {
-    status: "ok",
-    version: "1.0.0",
-    timestamp: new Date().toISOString(),
-    endpoints: {
-      config: "/api/config",
-      health: "/api/health",
-      stats: "/api/stats",
-      admin: "/admin",
-    },
-  };
+// 根路径健康检查（优先级最高）
+app.use(async (ctx) => {
+  if (ctx.request.url.pathname === "/") {
+    ctx.response.body = {
+      status: "ok",
+      version: "1.0.0",
+      timestamp: new Date().toISOString(),
+      endpoints: {
+        config: "/api/config",
+        health: "/api/health",
+        stats: "/api/stats",
+        admin: "/admin",
+      },
+    };
+  }
 });
 
 // 管理路由（无依赖，直接创建）
