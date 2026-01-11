@@ -69,36 +69,8 @@ app.use(corsMiddleware);
 app.use(errorHandlerMiddleware);
 app.use(cacheMiddleware);
 
-// API 路由（使用延迟初始化）
-app.use(async (ctx, next) => {
-  const { configRouter, healthRouter, statsRouter } = await getRouters();
-
-  // 尝试每个路由
-  await configRouter.routes()(ctx, async () => {
-    await healthRouter.routes()(ctx, async () => {
-      await statsRouter.routes()(ctx, next);
-    });
-  });
-});
-
-// 处理 OPTIONS 方法
-app.use(async (ctx, next) => {
-  const { configRouter, healthRouter, statsRouter } = await getRouters();
-
-  await configRouter.allowedMethods()(ctx, async () => {
-    await healthRouter.allowedMethods()(ctx, async () => {
-      await statsRouter.allowedMethods()(ctx, next);
-    });
-  });
-});
-
-// 管理路由（无依赖，直接创建）
-const adminRouter = createAdminRoute();
-app.use(adminRouter.routes());
-app.use(adminRouter.allowedMethods());
-
-// 根路径健康检查
-app.use(async (ctx) => {
+// 根路径健康检查（优先级最高，必须在路由之前）
+app.get("/", async (ctx) => {
   ctx.response.body = {
     status: "ok",
     version: "1.0.0",
@@ -110,6 +82,48 @@ app.use(async (ctx) => {
       admin: "/admin",
     },
   };
+});
+
+// 管理路由（无依赖，直接创建）
+const adminRouter = createAdminRoute();
+app.use(adminRouter.routes());
+app.use(adminRouter.allowedMethods());
+
+// API 路由（使用延迟初始化）
+app.use(async (ctx, next) => {
+  const { configRouter, healthRouter, statsRouter } = await getRouters();
+
+  // 依次尝试每个路由
+  let handled = false;
+
+  // 尝试 config 路由
+  await configRouter.routes()(ctx, async () => {
+    handled = true;
+    await next();
+  });
+
+  if (!handled) {
+    // 尝试 health 路由
+    await healthRouter.routes()(ctx, async () => {
+      handled = true;
+      await next();
+    });
+  }
+
+  if (!handled) {
+    // 尝试 stats 路由
+    await statsRouter.routes()(ctx, next);
+  }
+});
+
+// 处理 OPTIONS 方法
+app.use(async (ctx, next) => {
+  const { configRouter, healthRouter, statsRouter } = await getRouters();
+  await configRouter.allowedMethods()(ctx, async () => {
+    await healthRouter.allowedMethods()(ctx, async () => {
+      await statsRouter.allowedMethods()(ctx, next);
+    });
+  });
 });
 
 // Deno Deploy 导出
