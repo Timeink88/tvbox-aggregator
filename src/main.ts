@@ -70,8 +70,10 @@ app.use(errorHandlerMiddleware);
 app.use(cacheMiddleware);
 
 // 根路径健康检查（优先级最高）
-app.use(async (ctx) => {
+app.use(async (ctx, next) => {
   if (ctx.request.url.pathname === "/") {
+    ctx.response.status = 200;
+    ctx.response.headers.set("Content-Type", "application/json");
     ctx.response.body = {
       status: "ok",
       version: "1.0.0",
@@ -83,7 +85,10 @@ app.use(async (ctx) => {
         admin: "/admin",
       },
     };
+    console.log("[Health] Root path checked");
+    return; // 不继续传递
   }
+  await next(); // 其他路径继续传递
 });
 
 // 管理路由（无依赖，直接创建）
