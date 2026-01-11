@@ -27,8 +27,59 @@ export function createConfigRoute(useCase: AggregateConfigUseCase): Router {
           : undefined,
       };
 
-      // 执行聚合
-      const result = await useCase.execute(options);
+      // 执行聚合（可能失败，如果失败则直接返回源列表）
+      let result;
+      try {
+        result = await useCase.execute(options);
+      } catch (fetchError) {
+        console.warn("[Config] Fetch from remote failed, returning local sources:", fetchError.message);
+
+        // 如果远程获取失败，直接读取并返回本地源配置
+        const content = await Deno.readTextFile(
+          new URL("../../../config/sources.json", import.meta.url)
+        );
+        const sourcesData = JSON.parse(content);
+
+        // 过滤源
+        let filteredSources = sourcesData.filter((s: any) => s.enabled);
+
+        if (options.excludeFailed !== false) {
+          // 简单过滤：只返回启用的源
+          filteredSources = filteredSources.filter((s: any) => s.enabled);
+        }
+
+        if (options.minPriority !== undefined) {
+          filteredSources = filteredSources.filter((s: any) => s.priority >= options.minPriority!);
+        }
+
+        if (options.includeTags?.length) {
+          filteredSources = filteredSources.filter((s: any) =>
+            options.includeTags!.some((tag: string) => s.tags.includes(tag))
+          );
+        }
+
+        if (options.maxSources) {
+          filteredSources = filteredSources
+            .sort((a: any, b: any) => b.priority - a.priority)
+            .slice(0, options.maxSources);
+        }
+
+        result = {
+          version: new Date().toISOString().split("T")[0],
+          sources: filteredSources.map((s: any) => ({
+            name: s.name,
+            url: s.url,
+            icon: s.icon,
+            priority: s.priority,
+            status: s.enabled ? "available" : "disabled",
+          })),
+          total: filteredSources.length,
+          healthySources: filteredSources.length,
+          generatedAt: new Date(),
+          cacheTTL: 900,
+          note: "远程获取失败，返回本地源列表",
+        };
+      }
 
       // 设置响应头
       ctx.response.status = 200;

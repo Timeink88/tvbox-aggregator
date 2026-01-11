@@ -6,15 +6,16 @@ import { Router } from "oak";
 export function createAdminRoute(): Router {
   const router = new Router();
 
-  router.prefix("/admin");
+  // 注意：不要在这里设置 prefix，因为在 main.ts 中会使用 app.use(adminRouter.routes())
+  // 如果在这里设置 prefix("/admin")，会导致路由变成 /admin/admin/...
 
-  // GET /admin - 管理页面首页
+  // GET / - 管理页面首页
   router.get("/", async (ctx) => {
     ctx.response.headers.set("Content-Type", "text/html; charset=utf-8");
     ctx.response.body = getAdminPageHTML();
   });
 
-  // GET /admin/api/stats - 获取统计信息
+  // GET /api/stats - 获取统计信息
   router.get("/api/stats", async (ctx) => {
     // 这里可以从实际的缓存服务获取数据
     ctx.response.body = {
@@ -37,11 +38,11 @@ export function createAdminRoute(): Router {
     };
   });
 
-  // GET /admin/api/sources - 获取源配置列表
+  // GET /api/sources - 获取源配置列表
   router.get("/api/sources", async (ctx) => {
     try {
       const content = await Deno.readTextFile(
-        new URL("../../config/sources.json", import.meta.url)
+        new URL("../../../config/sources.json", import.meta.url)
       );
       const sources = JSON.parse(content);
 

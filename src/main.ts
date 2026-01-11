@@ -93,8 +93,9 @@ app.use(async (ctx, next) => {
 
 // 管理路由（无依赖，直接创建）
 const adminRouter = createAdminRoute();
-app.use(adminRouter.routes());
-app.use(adminRouter.allowedMethods());
+// 将 admin 路由挂载到 /admin 路径下
+app.use("/admin", adminRouter.routes());
+app.use("/admin", adminRouter.allowedMethods());
 
 // API 路由（使用延迟初始化）
 app.use(async (ctx, next) => {
