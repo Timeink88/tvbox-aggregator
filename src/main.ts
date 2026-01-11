@@ -65,12 +65,21 @@ app.use(async (ctx) => {
   };
 });
 
-// 启动服务器（仅在本地开发环境）
-if (import.meta.main) {
-  const port = parseInt(Deno.env.get("PORT") || "8000");
-  console.log(`🚀 Server running on http://localhost:${port}`);
-  await app.listen({ port });
-}
-
 // Deno Deploy 导出
 export default app;
+
+// 启动服务器（仅在本地开发环境）
+// Deno Deploy 会设置 DENO_DEPLOYMENT_ID 环境变量
+const isLocalDev = !Deno.env.get("DENO_DEPLOYMENT_ID");
+
+if (isLocalDev) {
+  try {
+    const port = parseInt(Deno.env.get("PORT") || "8000");
+    console.log(`🚀 Development server running on http://localhost:${port}`);
+    await app.listen({ port });
+  } catch (error) {
+    console.error("Failed to start server:", error);
+  }
+} else {
+  console.log("Running on Deno Deploy");
+}
