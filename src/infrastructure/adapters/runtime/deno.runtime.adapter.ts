@@ -1,8 +1,8 @@
 /**
  * Deno 运行时适配器
  */
-import { ICacheAdapter } from "./interfaces/cache-adapter.interface.ts";
-import { DenoKVAdapter } from "./storage/deno-kv.adapter.ts";
+import { ICacheAdapter } from "../interfaces/cache-adapter.interface.ts";
+import { DenoKVAdapter } from "../storage/deno-kv.adapter.ts";
 
 export class DenoRuntimeAdapter {
   name = "deno";

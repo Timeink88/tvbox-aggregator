@@ -1,7 +1,7 @@
 /**
  * Deno KV 存储适配器
  */
-import { ICacheAdapter } from "./interfaces/cache-adapter.interface.ts";
+import { ICacheAdapter } from "../interfaces/cache-adapter.interface.ts";
 
 export class DenoKVAdapter implements ICacheAdapter {
   constructor(private kv: Deno.Kv) {}
