@@ -5,6 +5,41 @@ import { ConfigSource } from "../../domain/entities/config-source.entity.ts";
 import { CacheManagerService } from "../services/cache-manager.service.ts";
 import { SourceValidatorService } from "../../domain/services/source-validator.service.ts";
 
+// TVBox 配置类型接口
+export interface SiteConfig {
+  key?: string;
+  name: string;
+  type?: string;
+  api?: string;
+  searchable?: number;
+  quickSearch?: number;
+  filterable?: number;
+  [key: string]: any;
+}
+
+export interface LiveConfig {
+  group?: string;
+  name: string;
+  logo?: string;
+  urls?: string[];
+  [key: string]: any;
+}
+
+export interface ParseConfig {
+  name: string;
+  type?: string;
+  url: string;
+  [key: string]: any;
+}
+
+export interface TVBoxConfig {
+  sites?: SiteConfig[];
+  lives?: LiveConfig[];
+  parses?: ParseConfig[];
+  spider?: string | string[];
+  wallpaper?: string;
+}
+
 export interface AggregateOptions {
   maxSources?: number;
   minPriority?: number;
@@ -12,6 +47,7 @@ export interface AggregateOptions {
   includeTags?: string[];
   excludeTags?: string[];
   cacheStrategy?: "aggressive" | "balanced" | "minimal";
+  includeContent?: boolean;
 }
 
 export interface AggregatedConfig {
@@ -27,6 +63,7 @@ export interface AggregatedConfig {
   healthySources: number;
   generatedAt: Date;
   cacheTTL: number;
+  merged_config?: TVBoxConfig;
 }
 
 export class AggregateConfigUseCase {
@@ -41,6 +78,7 @@ export class AggregateConfigUseCase {
     const effectiveOptions = {
       ...options,
       excludeFailed: options.excludeFailed ?? false,
+      includeContent: options.includeContent ?? false,
     };
 
     // 1. 尝试从缓存获取
@@ -63,7 +101,6 @@ export class AggregateConfigUseCase {
       sources: filteredSources.map((source) => ({
         name: source.name,
         url: source.url,
-        icon: source.icon,
         priority: source.priority,
         status: source.status || "unknown", // 包含实际状态
       })),
@@ -72,6 +109,20 @@ export class AggregateConfigUseCase {
       generatedAt: new Date(),
       cacheTTL: 3600,
     };
+
+    // 5. 条件性合并配置内容
+    if (effectiveOptions.includeContent) {
+      try {
+        const validator = new SourceValidatorService();
+        const configs = await this.fetchValidConfigs(filteredSources, validator);
+        if (configs.length > 0) {
+          result.merged_config = this.mergeConfigs(configs);
+          console.log(`[Aggregate] Merged ${configs.length} configs`);
+        }
+      } catch (error) {
+        console.error(`[Aggregate] Failed to fetch configs:`, error.message);
+      }
+    }
 
     // 6. 写入缓存
     await this.cacheService.set(cacheKey, result, 3600);
@@ -182,6 +233,68 @@ export class AggregateConfigUseCase {
     }
 
     return results;
+  }
+
+  private mergeConfigs(configs: any[]): TVBoxConfig {
+    const merged: TVBoxConfig = {};
+
+    // 合并 sites（按 key 去重）
+    const sitesMap = new Map<string, SiteConfig>();
+    for (const config of configs) {
+      if (config.sites && Array.isArray(config.sites)) {
+        for (const site of config.sites) {
+          const key = site.key || site.name;
+          if (!sitesMap.has(key)) {
+            sitesMap.set(key, site);
+          }
+        }
+      }
+    }
+    if (sitesMap.size > 0) {
+      merged.sites = Array.from(sitesMap.values());
+    }
+
+    // 合并 lives（按 name 去重）
+    const livesMap = new Map<string, LiveConfig>();
+    for (const config of configs) {
+      if (config.lives && Array.isArray(config.lives)) {
+        for (const live of config.lives) {
+          if (!livesMap.has(live.name)) {
+            livesMap.set(live.name, live);
+          }
+        }
+      }
+    }
+    if (livesMap.size > 0) {
+      merged.lives = Array.from(livesMap.values());
+    }
+
+    // 合并 parses（按 name 去重）
+    const parsesMap = new Map<string, ParseConfig>();
+    for (const config of configs) {
+      if (config.parses && Array.isArray(config.parses)) {
+        for (const parse of config.parses) {
+          if (!parsesMap.has(parse.name)) {
+            parsesMap.set(parse.name, parse);
+          }
+        }
+      }
+    }
+    if (parsesMap.size > 0) {
+      merged.parses = Array.from(parsesMap.values());
+    }
+
+    // spider 和 wallpaper 使用第一个有效值
+    for (const config of configs) {
+      if (config.spider && !merged.spider) {
+        merged.spider = config.spider;
+      }
+      if (config.wallpaper && !merged.wallpaper) {
+        merged.wallpaper = config.wallpaper;
+      }
+    }
+
+    return merged;
   }
 
   private generateCacheKey(options: AggregateOptions): string {

@@ -23,6 +23,7 @@ export function createConfigRoute(useCase: AggregateConfigUseCase): Router {
         maxSources: ctx.request.url.searchParams.get("maxSources")
           ? Number(ctx.request.url.searchParams.get("maxSources"))
           : undefined,
+        includeContent: ctx.request.url.searchParams.get("includeContent") === "true",
       };
 
       // 执行聚合（可能失败，如果失败则直接返回源列表）
