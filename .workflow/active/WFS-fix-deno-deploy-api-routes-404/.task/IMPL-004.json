@@ -1,0 +1,149 @@
+{
+  "id": "IMPL-004",
+  "title": "优化和清理代码",
+  "status": "pending",
+  "context_package_path": ".workflow/active/WFS-fix-deno-deploy-api-routes-404/.process/context-package.json",
+  "cli_execution_id": "WFS-fix-deno-deploy-api-routes-404-IMPL-004",
+  "cli_execution": {
+    "strategy": "resume",
+    "resume_from": "WFS-fix-deno-deploy-api-routes-404-IMPL-003"
+  },
+  "meta": {
+    "type": "refactor",
+    "agent": "@code-developer",
+    "execution_group": null,
+    "module": null,
+    "execution_config": {
+      "method": "agent",
+      "cli_tool": "not_applicable",
+      "enable_resume": true,
+      "previous_cli_id": "WFS-fix-deno-deploy-api-routes-404-IMPL-003"
+    }
+  },
+  "context": {
+    "requirements": [
+      "添加详细注释说明标准 Oak 路由注册模式",
+      "检查 main.ts 中是否有其他需要优化的地方",
+      "确保代码风格一致性",
+      "添加 JSDoc 注释说明关键函数"
+    ],
+    "focus_paths": [
+      "src/main.ts"
+    ],
+    "acceptance": [
+      "路由注册部分有注释: verify by grep -A 1 'app.use' src/main.ts | grep -c '//' >= 3",
+      "代码风格一致: verify by inspection (缩进、命名、格式)",
+      "JSDoc 注释存在: verify by grep -c '\\/\\*\\*' src/main.ts >= 1",
+      "TypeScript 编译无警告: verify by deno check --remote src/main.ts (无警告)"
+    ],
+    "depends_on": ["IMPL-003"],
+    "inherited": {
+      "from": "IMPL-003",
+      "context": [
+        "所有路由已验证工作正常",
+        "404 问题已解决",
+        "测试结果已记录"
+      ]
+    },
+    "shared_context": {
+      "tech_stack": ["Deno", "Oak v12.6.1", "TypeScript"],
+      "conventions": [
+        "使用 JSDoc 注释说明函数和模块",
+        "添加行内注释解释复杂逻辑",
+        "保持代码风格一致性"
+      ]
+    },
+    "artifacts": []
+  },
+  "flow_control": {
+    "pre_analysis": [
+      {
+        "step": "load_context_package",
+        "action": "加载上下文包获取代码优化建议",
+        "commands": [
+          "Read(D:\\Code\\tvbox\\.workflow\\active\\WFS-fix-deno-deploy-api-routes-404\\.process\\context-package.json)"
+        ],
+        "output_to": "context_package",
+        "on_error": "fail"
+      }
+    ],
+    "implementation_approach": [
+      {
+        "step": 1,
+        "title": "添加路由注册注释",
+        "description": "在 main.ts 的路由注册部分添加注释,说明标准 Oak 模式",
+        "modification_points": [
+          "在 Admin 路由注册前添加注释块",
+          "在每个 API 路由注册前添加行内注释",
+          "说明为什么使用 app.use() 而不是手动中间件链"
+        ],
+        "logic_flow": [
+          "定位路由注册代码段",
+          "添加注释块说明 Oak 标准模式",
+          "为每个路由添加简洁的行内注释",
+          "确保注释清晰易懂"
+        ],
+        "depends_on": [],
+        "output": "routing_comments_added"
+      },
+      {
+        "step": 2,
+        "title": "添加 JSDoc 注释",
+        "description": "为 main.ts 中的关键函数添加 JSDoc 注释",
+        "modification_points": [
+          "为 fetch handler 函数添加 JSDoc",
+          "为应用初始化逻辑添加说明",
+          "为中间件注册添加注释"
+        ],
+        "logic_flow": [
+          "识别关键函数和逻辑块",
+          "为每个函数添加 JSDoc 注释",
+          "说明参数和返回值",
+          "添加使用示例 (如果适用)"
+        ],
+        "depends_on": [1],
+        "output": "jsdoc_added"
+      },
+      {
+        "step": 3,
+        "title": "检查代码风格一致性",
+        "description": "检查并统一代码风格,包括命名、缩进、格式等",
+        "modification_points": [
+          "检查命名约定是否一致",
+          "检查缩进是否统一 (2 空格或 4 空格)",
+          "检查导入语句顺序",
+          "检查是否有冗余代码"
+        ],
+        "logic_flow": [
+          "读取整个 main.ts 文件",
+          "检查代码风格一致性",
+          "修复不一致的地方",
+          "运行 deno fmt 确保格式统一"
+        ],
+        "depends_on": [2],
+        "output": "style_consistent"
+      },
+      {
+        "step": 4,
+        "title": "最终验证",
+        "description": "运行最终检查确保所有优化没有引入问题",
+        "modification_points": [
+          "运行 deno check 确保无类型错误",
+          "运行 deno fmt 确保格式统一",
+          "重新测试所有路由确保仍然工作"
+        ],
+        "logic_flow": [
+          "执行 deno check --remote src/main.ts",
+          "执行 deno fmt src/main.ts",
+          "运行应用并测试关键路由",
+          "确认一切正常"
+        ],
+        "depends_on": [3],
+        "output": "optimization_complete"
+      }
+    ],
+    "target_files": [
+      "src/main.ts"
+    ]
+  }
+}

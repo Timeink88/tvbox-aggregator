@@ -18,8 +18,8 @@ export function createConfigRoute(useCase: AggregateConfigUseCase): Router {
         minPriority: ctx.request.url.searchParams.get("minPriority")
           ? Number(ctx.request.url.searchParams.get("minPriority"))
           : undefined,
-        excludeFailed: ctx.request.url.searchParams.get("excludeFailed") !==
-          "false",
+        excludeFailed: ctx.request.url.searchParams.get("excludeFailed") ===
+          "true" ? true : ctx.request.url.searchParams.get("excludeFailed") === "false" ? false : undefined,
         maxSources: ctx.request.url.searchParams.get("maxSources")
           ? Number(ctx.request.url.searchParams.get("maxSources"))
           : undefined,

@@ -1,0 +1,362 @@
+{
+  "metadata": {
+    "task_description": "GOAL: 修复 Deno Deploy API 路由 404 错误\nSCOPE: 修复 /api/config、/admin 等路由无法访问的问题\nCONTEXT: 应用返回正确的路由端点列表,但实际访问返回 404。根路径响应正常,Deno Deploy 导出格式已修复",
+    "keywords": [
+      "Deno Deploy",
+      "Oak router",
+      "404 error",
+      "routing",
+      "middleware",
+      "app.use",
+      "fetch handler",
+      "API routes"
+    ],
+    "complexity": "Medium",
+    "tech_stack": [
+      "Deno",
+      "Oak v12.6.1",
+      "TypeScript",
+      "Deno Deploy"
+    ],
+    "session_id": "WFS-fix-deno-deploy-api-routes-404",
+    "generated_at": "2026-01-13T00:40:00Z",
+    "version": "1.0.0"
+  },
+  "project_context": {
+    "description": "基于 Deno Deploy 的 TVBox 配置源聚合服务,使用 Oak v12.6.1 框架,采用分层架构(DDD)。当前问题:虽然根路径(/)返回正确的端点列表,但实际访问 /api/config、/admin 等路由时返回 404 错误。",
+    "technology_stack": {
+      "runtime": "Deno (Deno Deploy 兼容)",
+      "framework": "Oak v12.6.1 (https://deno.land/x/oak@v12.6.1/mod.ts)",
+      "language": "TypeScript",
+      "deployment": "Deno Deploy",
+      "architecture": "Layered Architecture with DDD principles"
+    },
+    "architecture": {
+      "layers": {
+        "presentation": "src/presentation/api/ - 路由、中间件、HTTP 处理",
+        "application": "src/application/ - 用例、业务逻辑、服务",
+        "domain": "src/domain/ - 实体、领域服务",
+        "infrastructure": "src/infrastructure/adapters/ - 适配器 (Deno KV, Runtime)"
+      },
+      "entry_point": "src/main.ts",
+      "middleware_chain": [
+        "corsMiddleware",
+        "errorHandlerMiddleware",
+        "cacheMiddleware",
+        "Root path handler (/)",
+        "Admin router (/admin/*)",
+        "API routers (/api/*) - 问题所在",
+        "OPTIONS handler"
+      ]
+    },
+    "key_components": {
+      "routers": [
+        {
+          "name": "configRouter",
+          "file": "src/presentation/api/v1/config.route.ts",
+          "routes": ["/api/config"],
+          "prefix": "/api",
+          "status": "返回 404"
+        },
+        {
+          "name": "healthRouter",
+          "file": "src/presentation/api/v1/health.route.ts",
+          "routes": ["/api/health", "/api/health/check"],
+          "prefix": "/api",
+          "status": "返回 404"
+        },
+        {
+          "name": "statsRouter",
+          "file": "src/presentation/api/v1/stats.route.ts",
+          "routes": ["/api/stats"],
+          "prefix": "/api",
+          "status": "返回 404"
+        },
+        {
+          "name": "adminRouter",
+          "file": "src/presentation/api/admin.route.ts",
+          "routes": ["/admin", "/admin/api/*"],
+          "prefix": "无 (在 app.use 中指定)",
+          "status": "工作正常 (参考实现)"
+        }
+      ],
+      "middleware": [
+        {
+          "name": "corsMiddleware",
+          "file": "src/presentation/api/middleware/cors.middleware.ts",
+          "purpose": "处理 CORS 预检请求"
+        },
+        {
+          "name": "errorHandlerMiddleware",
+          "file": "src/presentation/api/middleware/error-handler.middleware.ts",
+          "purpose": "全局错误捕获"
+        },
+        {
+          "name": "cacheMiddleware",
+          "file": "src/presentation/api/middleware/cache.middleware.ts",
+          "purpose": "缓存管理"
+        }
+      ]
+    }
+  },
+  "assets": {
+    "documentation": [
+      {
+        "path": "D:\\Code\\tvbox\\README.md",
+        "relevance": 0.6,
+        "description": "项目概述和 API 文档"
+      }
+    ],
+    "source_code": [
+      {
+        "path": "D:\\Code\\tvbox\\src\\main.ts",
+        "relevance": 0.95,
+        "description": "核心入口点,包含路由注册和 Deno Deploy fetch handler",
+        "critical_sections": [
+          {
+            "lines": "97-98",
+            "issue": "Admin 路由使用正确的 app.use() 模式",
+            "status": "working"
+          },
+          {
+            "lines": "101-125",
+            "issue": "API 路由使用错误的手动中间件链模式,handled 标志逻辑错误",
+            "status": "broken"
+          },
+          {
+            "lines": "138-161",
+            "issue": "Deno Deploy fetch handler,oakRequest 对象构造可能不完整",
+            "status": "needs_review"
+          }
+        ]
+      },
+      {
+        "path": "D:\\Code\\tvbox\\src\\presentation\\api\\admin.route.ts",
+        "relevance": 0.85,
+        "description": "工作正常的路由参考,不使用 prefix",
+        "pattern": "直接在 app.use('/admin') 中指定路径前缀"
+      },
+      {
+        "path": "D:\\Code\\tvbox\\src\\presentation\\api\\v1\\config.route.ts",
+        "relevance": 0.85,
+        "description": "问题路由,使用 router.prefix('/api')",
+        "pattern": "在路由文件中定义 prefix,但 main.ts 中使用错误的挂载方式"
+      },
+      {
+        "path": "D:\\Code\\tvbox\\src\\presentation\\api\\v1\\health.route.ts",
+        "relevance": 0.75,
+        "description": "问题路由,使用相同的错误模式"
+      },
+      {
+        "path": "D:\\Code\\tvbox\\src\\presentation\\api\\v1\\stats.route.ts",
+        "relevance": 0.75,
+        "description": "问题路由,使用相同的错误模式"
+      },
+      {
+        "path": "D:\\Code\\tvbox\\src\\presentation\\api\\middleware\\error-handler.middleware.ts",
+        "relevance": 0.5,
+        "description": "错误处理中间件,只能捕获异常,无法处理路由未匹配"
+      }
+    ],
+    "config": [
+      {
+        "path": "D:\\Code\\tvbox\\deno.json",
+        "relevance": 0.4,
+        "description": "Deno 配置,定义 Oak 版本和导入映射"
+      }
+    ],
+    "tests": []
+  },
+  "dependencies": {
+    "internal": [
+      {
+        "name": "AggregateConfigUseCase",
+        "from": "src/application/use-cases/aggregate-config.use-case.ts",
+        "used_by": ["src/presentation/api/v1/config.route.ts"]
+      },
+      {
+        "name": "HealthCheckUseCase",
+        "from": "src/application/use-cases/health-check.use-case.ts",
+        "used_by": ["src/presentation/api/v1/health.route.ts"]
+      },
+      {
+        "name": "CacheManagerService",
+        "from": "src/application/services/cache-manager.service.ts",
+        "used_by": ["src/presentation/api/v1/stats.route.ts"]
+      },
+      {
+        "name": "DenoRuntimeAdapter",
+        "from": "src/infrastructure/adapters/runtime/deno.runtime.adapter.ts",
+        "used_by": ["src/main.ts"]
+      }
+    ],
+    "external": [
+      {
+        "name": "Oak",
+        "version": "v12.6.1",
+        "source": "https://deno.land/x/oak@v12.6.1/mod.ts",
+        "purpose": "Web 框架",
+        "api_methods": [
+          "Application",
+          "Router",
+          "Router.routes()",
+          "Router.allowedMethods()",
+          "Application.handle()",
+          "Application.use()"
+        ]
+      }
+    ],
+    "dependency_graph": {
+      "nodes": [
+        "main.ts",
+        "config.route.ts",
+        "health.route.ts",
+        "stats.route.ts",
+        "admin.route.ts",
+        "aggregate-config.use-case.ts",
+        "health-check.use-case.ts",
+        "cache-manager.service.ts",
+        "deno.runtime.adapter.ts"
+      ],
+      "edges": [
+        {
+          "from": "main.ts",
+          "to": ["config.route.ts", "health.route.ts", "stats.route.ts", "admin.route.ts"],
+          "type": "imports_and_mounts"
+        },
+        {
+          "from": "config.route.ts",
+          "to": "aggregate-config.use-case.ts",
+          "type": "uses"
+        },
+        {
+          "from": "health.route.ts",
+          "to": "health-check.use-case.ts",
+          "type": "uses"
+        },
+        {
+          "from": "stats.route.ts",
+          "to": "cache-manager.service.ts",
+          "type": "uses"
+        }
+      ]
+    }
+  },
+  "brainstorm_artifacts": {
+    "guidance_specification": null,
+    "role_analyses": [],
+    "synthesis_output": null,
+    "exists": false
+  },
+  "conflict_detection": {
+    "risk_level": "HIGH",
+    "risk_factors": [
+      {
+        "severity": "critical",
+        "issue": "路由注册模式不一致",
+        "description": "Admin 路由使用标准 app.use() 模式,API 路由使用手动中间件链模式,后者实现错误",
+        "affected_modules": ["src/main.ts:101-125"]
+      },
+      {
+        "severity": "critical",
+        "issue": "handled 标志逻辑错误",
+        "description": "回调函数总是立即执行,导致 handled 总是为 true,后续路由永远不会被尝试",
+        "affected_modules": ["src/main.ts:108-124"]
+      },
+      {
+        "severity": "high",
+        "issue": "router.prefix() 与 app.use() 模式不匹配",
+        "description": "API 路由在文件中定义 prefix('/api'),但 main.ts 中没有正确挂载",
+        "affected_modules": ["src/main.ts", "src/presentation/api/v1/*.route.ts"]
+      },
+      {
+        "severity": "medium",
+        "issue": "oakRequest 对象构造可能不完整",
+        "description": "Deno Deploy fetch handler 中手动构造的 oakRequest 可能缺少 Oak Application.handle() 所需的属性",
+        "affected_modules": ["src/main.ts:143-150"]
+      }
+    ],
+    "affected_modules": [
+      "src/main.ts (路由注册逻辑,101-125行)",
+      "src/main.ts (Deno Deploy fetch handler,138-161行)",
+      "src/presentation/api/v1/config.route.ts",
+      "src/presentation/api/v1/health.route.ts",
+      "src/presentation/api/v1/stats.route.ts"
+    ],
+    "mitigation_strategy": {
+      "recommended_approach": "完全重构为标准 Oak 模式",
+      "steps": [
+        "1. 移除 src/main.ts:101-125 的手动中间件链",
+        "2. 移除 API 路由文件中的 router.prefix('/api')",
+        "3. 使用 app.use('/api', router.routes()) 直接挂载每个路由",
+        "4. 添加 app.use('/api', router.allowedMethods()) 处理 OPTIONS",
+        "5. 验证 Admin 路由继续正常工作"
+      ],
+      "expected_outcome": "所有路由使用一致的 app.use() 模式,与 Oak 最佳实践保持一致",
+      "rollback_plan": "保留当前 main.ts 为备份,如果失败可以快速回滚"
+    },
+    "historical_conflicts": []
+  },
+  "exploration_results": {
+    "manifest_path": ".workflow/active/WFS-fix-deno-deploy-api-routes-404/.process/explorations-manifest.json",
+    "exploration_count": 3,
+    "angles": ["architecture", "error-handling", "dataflow"],
+    "explorations": [
+      {
+        "angle": "architecture",
+        "index": 1,
+        "file": "exploration-architecture.json",
+        "key_insights": [
+          "Deno Deploy fetch handler 中的 oakRequest 对象构造不完整 (src/main.ts:143-150)",
+          "API 路由使用了错误的手动中间件模式 (src/main.ts:101-125),不符合 Oak 规范",
+          "路由注册模式不一致:admin 使用 app.use(),API 使用手动中间件链",
+          "router.prefix('/api') 定义与实际挂载方式不匹配"
+        ]
+      },
+      {
+        "angle": "error-handling",
+        "index": 2,
+        "file": "exploration-error-handling.json",
+        "key_insights": [
+          "路由处理逻辑使用 handled 标志判断是否匹配,但实现错误(回调立即执行)",
+          "errorHandlerMiddleware 只能捕获异常,无法处理路由未匹配的 404",
+          "缺少全局 404 处理中间件",
+          "根本问题不是真正的 404,而是路由无法匹配导致的假 404"
+        ]
+      },
+      {
+        "angle": "dataflow",
+        "index": 3,
+        "file": "exploration-dataflow.json",
+        "key_insights": [
+          "请求流向: Deno Deploy → fetch handler → oakRequest → app.handle() → Middleware → Router → Response",
+          "关键问题: src/main.ts:101-125 的 handled 标志逻辑错误,回调总是立即执行",
+          "Admin 路由使用标准 app.use() 模式,工作正常",
+          "API 路由使用手动中间件链,但实现错误导致路由无法匹配",
+          "oakRequest 对象可能不完整,但这可能不是主要问题"
+        ]
+      }
+    ],
+    "aggregated_insights": {
+      "root_cause": "src/main.ts:101-125 使用了错误的手动路由匹配模式,handled 标志逻辑导致回调总是立即执行,使得路由永远不会被正确匹配",
+      "evidence": [
+        "Admin 路由 (97-98行) 使用标准 app.use() 模式,工作正常",
+        "API 路由 (101-125行) 使用手动中间件链,返回 404",
+        "Oak 官方文档推荐: app.use(router.routes()) + app.use(router.allowedMethods())",
+        "回调函数在 routes() 返回的中间件内部总是被调用,handled 总是变为 true"
+      ],
+      "recommended_solution": "移除手动中间件链,使用标准 Oak 模式:\n```typescript\n// 移除 router.prefix('/api') 从路由文件\n// 在 main.ts 中:\napp.use('/api', configRouter.routes());\napp.use('/api', configRouter.allowedMethods());\napp.use('/api', healthRouter.routes());\napp.use('/api', healthRouter.allowedMethods());\napp.use('/api', statsRouter.routes());\napp.use('/api', statsRouter.allowedMethods());\n```",
+      "alternative_solutions": [
+        "1. 修复 handled 标志逻辑,检查 ctx.response.body (不推荐,复杂且不可靠)",
+        "2. 创建统一 API Router,使用子路由 (需要重构路由文件结构)",
+        "3. 使用第三方 Deno Deploy 适配器 (增加外部依赖)"
+      ],
+      "web_best_practices": [
+        "Oak Router.routes() 返回中间件函数,应通过 app.use() 挂载",
+        "不要手动调用 router.routes()(ctx, callback),这不是 Oak 的设计意图",
+        "router.prefix() 是可选的,路径前缀也可以在 app.use() 中指定",
+        "Admin 路由的正确实现应该作为参考模式"
+      ]
+    }
+  }
+}

@@ -1,0 +1,115 @@
+{
+  "id": "IMPL-001",
+  "title": "修复 Admin 路由 404 错误",
+  "status": "completed",
+  "context_package_path": ".workflow/active/WFS-fix-config-data-inconsistency/context-package.json",
+  "cli_execution_id": "WFS-fix-config-data-inconsistency-IMPL-001",
+  "cli_execution": {
+    "strategy": "new"
+  },
+  "meta": {
+    "type": "bugfix",
+    "agent": "@code-developer",
+    "execution_group": null,
+    "module": null,
+    "execution_config": {
+      "method": "agent",
+      "cli_tool": "auto",
+      "enable_resume": true,
+      "previous_cli_id": null
+    }
+  },
+  "context": {
+    "requirements": [
+      "修改 1 个文件: src/presentation/api/admin.route.ts 第 11 行",
+      "在 createAdminRoute() 函数中添加 router.prefix('/admin')",
+      "验证 3 个 Admin 端点可访问: [/admin, /admin/api/stats, /admin/api/sources]"
+    ],
+    "focus_paths": ["src/presentation/api/admin.route.ts"],
+    "acceptance": [
+      "1 个文件已修改: src/presentation/api/admin.route.ts 第 11 行添加 router.prefix('/admin')",
+      "3 个端点返回 200: 验证 curl -s http://localhost:8000/admin -w '%{http_code}' 返回 200",
+      "管理页面可访问: 验证 curl -s http://localhost:8000/admin | grep 'TVBox 聚合服务'"
+    ],
+    "depends_on": [],
+    "inherited": {
+      "from": null,
+      "context": []
+    },
+    "shared_context": {
+      "tech_stack": ["Deno", "Oak", "TypeScript"],
+      "routing_pattern": "Oak Router 标准模式，路由前缀使用 router.prefix() 在路由器内部设置",
+      "conventions": ["保持与其他路由器一致的挂载方式"]
+    },
+    "artifacts": [
+      {
+        "type": "route",
+        "name": "Admin Router Prefix",
+        "location": "src/presentation/api/admin.route.ts:11",
+        "description": "使用 router.prefix('/admin') 设置 Admin 路由前缀"
+      }
+    ]
+  },
+  "flow_control": {
+    "pre_analysis": [
+      {
+        "step": "load_context_package",
+        "action": "加载会话上下文和项目元数据",
+        "commands": ["Read(.workflow/active/WFS-fix-config-data-inconsistency/workflow-session.json)"],
+        "output_to": "session_context",
+        "on_error": "fail"
+      },
+      {
+        "step": "analyze_admin_routing",
+        "action": "分析 Admin 路由挂载逻辑",
+        "commands": [
+          "Read(src/main.ts 第 160-170 行)",
+          "Read(src/presentation/api/admin.route.ts 第 1-15 行)"
+        ],
+        "output_to": "admin_routing_analysis",
+        "on_error": "fail"
+      }
+    ],
+    "implementation_approach": [
+      {
+        "step": 1,
+        "title": "添加 Admin 路由路径前缀",
+        "description": "在 src/presentation/api/admin.route.ts 的 createAdminRoute() 函数中添加 router.prefix('/admin')",
+        "modification_points": [
+          "修改 1 行代码: src/presentation/api/admin.route.ts 第 11 行",
+          "添加 router.prefix('/admin') 在路由器创建之后"
+        ],
+        "logic_flow": [
+          "定位 src/presentation/api/admin.route.ts 第 6-7 行",
+          "在 router 创建后添加 router.prefix('/admin')",
+          "更新注释说明 prefix 的作用",
+          "确保 Oak 路由器正确挂载到 /admin 路径"
+        ],
+        "depends_on": [],
+        "output": "admin_route_fixed"
+      },
+      {
+        "step": 2,
+        "title": "验证 Admin 路由可访问性",
+        "description": "测试 Admin 路由的 3 个主要端点是否正常响应",
+        "modification_points": [
+          "测试 3 个端点: [GET /admin, GET /admin/api/stats, GET /admin/api/sources]",
+          "验证 HTTP 状态码为 200",
+          "验证响应内容格式正确"
+        ],
+        "logic_flow": [
+          "启动开发服务器 (deno run --allow-net --allow-env --allow-read src/main.ts)",
+          "测试 GET /admin 端点返回 HTML",
+          "测试 GET /admin/api/stats 端点返回 JSON",
+          "测试 GET /admin/api/sources 端点返回 JSON",
+          "记录所有测试结果"
+        ],
+        "depends_on": [1],
+        "output": "admin_route_verification"
+      }
+    ],
+    "target_files": [
+      "src/presentation/api/admin.route.ts:router.prefix('/admin'):11"
+    ]
+  }
+}

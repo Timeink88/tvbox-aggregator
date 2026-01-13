@@ -72,7 +72,7 @@ async function getRouters() {
 
     const configRouter = createConfigRoute(aggregateUseCase);
     const healthRouter = createHealthRoute(healthCheckUseCase);
-    const statsRouter = createStatsRoute(cacheService);
+    const statsRouter = createStatsRoute(cacheService, healthCheckUseCase);
 
     routers = { configRouter, healthRouter, statsRouter };
     console.log("[Init] Routers initialized");

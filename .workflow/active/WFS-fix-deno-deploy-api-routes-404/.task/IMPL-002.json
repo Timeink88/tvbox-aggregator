@@ -1,0 +1,190 @@
+{
+  "id": "IMPL-002",
+  "title": "重构 main.ts 路由注册为标准 Oak 模式",
+  "status": "pending",
+  "context_package_path": ".workflow/active/WFS-fix-deno-deploy-api-routes-404/.process/context-package.json",
+  "cli_execution_id": "WFS-fix-deno-deploy-api-routes-404-IMPL-002",
+  "cli_execution": {
+    "strategy": "resume",
+    "resume_from": "WFS-fix-deno-deploy-api-routes-404-IMPL-001"
+  },
+  "meta": {
+    "type": "refactor",
+    "agent": "@code-developer",
+    "execution_group": null,
+    "module": null,
+    "execution_config": {
+      "method": "agent",
+      "cli_tool": "not_applicable",
+      "enable_resume": true,
+      "previous_cli_id": "WFS-fix-deno-deploy-api-routes-404-IMPL-001"
+    }
+  },
+  "context": {
+    "requirements": [
+      "修改 1 个文件: [src/main.ts]",
+      "移除手动中间件链代码块 (101-125行,约25行)",
+      "添加 6 行标准 Oak app.use() 调用: [app.use('/api', configRouter.routes()), app.use('/api', configRouter.allowedMethods()), app.use('/api', healthRouter.routes()), app.use('/api', healthRouter.allowedMethods()), app.use('/api', statsRouter.routes()), app.use('/api', statsRouter.allowedMethods())]",
+      "保留 Admin 路由注册 (97-98行) 作为参考"
+    ],
+    "focus_paths": [
+      "src/main.ts:101-125"
+    ],
+    "acceptance": [
+      "移除手动中间件链: verify by grep -n 'handled' src/main.ts | wc -l = 0",
+      "添加 6 个 app.use() 调用: verify by grep -n \"app.use('/api'\" src/main.ts | wc -l = 6",
+      "Admin 路由保留: verify by grep -n \"app.use('/admin'\" src/main.ts | wc -l = 1",
+      "TypeScript 编译无错误: verify by deno check --remote src/main.ts (exit code 0)",
+      "路由注册顺序正确: 中间件 → 根路径 → Admin → API → OPTIONS (verify by inspection)"
+    ],
+    "depends_on": ["IMPL-001"],
+    "inherited": {
+      "from": "IMPL-001",
+      "context": [
+        "API 路由文件已移除 router.prefix('/api')",
+        "路由导出保持不变: configRouter, healthRouter, statsRouter",
+        "路由路径定义保留: /config, /health, /health/check, /stats"
+      ]
+    },
+    "shared_context": {
+      "tech_stack": ["Deno", "Oak v12.6.1", "TypeScript"],
+      "conventions": [
+        "使用标准 Oak app.use() 模式注册路由",
+        "路径前缀在 app.use() 中指定,不在路由文件中使用 prefix()",
+        "每个路由需要调用 routes() 和 allowedMethods()",
+        "Admin 路由的正确实现作为参考"
+      ]
+    },
+    "artifacts": []
+  },
+  "flow_control": {
+    "pre_analysis": [
+      {
+        "step": "load_context_package",
+        "action": "加载上下文包获取 main.ts 的关键问题分析",
+        "commands": [
+          "Read(D:\\Code\\tvbox\\.workflow\\active\\WFS-fix-deno-deploy-api-routes-404\\.process\\context-package.json)"
+        ],
+        "output_to": "context_package",
+        "on_error": "fail"
+      },
+      {
+        "step": "load_exploration_analysis",
+        "action": "加载探索结果获取路由注册问题的根本原因分析",
+        "commands": [
+          "Read(D:\\Code\\tvbox\\.workflow\\active\\WFS-fix-deno-deploy-api-routes-404\\.process\\exploration-dataflow.json)",
+          "Read(D:\\Code\\tvbox\\.workflow\\active\\WFS-fix-deno-deploy-api-routes-404\\.process\\exploration-error-handling.json)"
+        ],
+        "output_to": "exploration_analysis",
+        "on_error": "skip_optional"
+      },
+      {
+        "step": "analyze_admin_reference",
+        "action": "分析 Admin 路由的正确实现作为参考模式",
+        "commands": [
+          "bash(grep -A 2 -B 2 \"app.use('/admin'\" src/main.ts)"
+        ],
+        "output_to": "admin_reference_pattern",
+        "on_error": "continue"
+      }
+    ],
+    "implementation_approach": [
+      {
+        "step": 1,
+        "title": "分析当前手动中间件链实现",
+        "description": "理解 src/main.ts:101-125 中错误的手动路由匹配模式",
+        "modification_points": [
+          "定位手动中间件链代码块 (101-125行)",
+          "分析 handled 标志逻辑错误",
+          "识别需要移除的代码范围"
+        ],
+        "logic_flow": [
+          "读取 src/main.ts 文件",
+          "定位 101-125 行的手动中间件链",
+          "理解 handled 标志为什么总是为 true",
+          "确认需要完全移除而不是修复"
+        ],
+        "depends_on": [],
+        "output": "current_pattern_analysis"
+      },
+      {
+        "step": 2,
+        "title": "移除手动中间件链代码",
+        "description": "删除 src/main.ts:101-125 的错误路由注册代码",
+        "modification_points": [
+          "删除 src/main.ts:101-125 (约25行)",
+          "保留 Admin 路由注册 (97-98行)",
+          "保留后续的 OPTIONS handler (126行之后)"
+        ],
+        "logic_flow": [
+          "使用 Edit 工具删除 101-125 行的代码块",
+          "确保不删除其他重要代码",
+          "验证代码结构完整性"
+        ],
+        "depends_on": [1],
+        "output": "manual_chain_removed"
+      },
+      {
+        "step": 3,
+        "title": "添加标准 Oak 路由注册",
+        "description": "使用 app.use('/api', router.routes()) 和 app.use('/api', router.allowedMethods()) 模式注册所有 API 路由",
+        "modification_points": [
+          "在 Admin 路由后添加 6 个 app.use() 调用",
+          "按顺序注册: configRouter, healthRouter, statsRouter",
+          "每个路由调用 routes() 和 allowedMethods()"
+        ],
+        "logic_flow": [
+          "在 Admin 路由注册后插入新代码",
+          "添加 app.use('/api', configRouter.routes())",
+          "添加 app.use('/api', configRouter.allowedMethods())",
+          "添加 app.use('/api', healthRouter.routes())",
+          "添加 app.use('/api', healthRouter.allowedMethods())",
+          "添加 app.use('/api', statsRouter.routes())",
+          "添加 app.use('/api', statsRouter.allowedMethods())",
+          "确保代码格式和缩进正确"
+        ],
+        "depends_on": [2],
+        "output": "standard_routing_added"
+      },
+      {
+        "step": 4,
+        "title": "验证路由注册顺序",
+        "description": "确保中间件链顺序正确: CORS → Error Handler → Cache → 根路径 → Admin → API → OPTIONS",
+        "modification_points": [
+          "验证中间件顺序",
+          "确认 API 路由在 Admin 路由之后",
+          "确认 OPTIONS handler 在最后"
+        ],
+        "logic_flow": [
+          "读取修改后的 main.ts",
+          "检查中间件注册顺序",
+          "确认没有遗漏或错位",
+          "验证代码逻辑流畅性"
+        ],
+        "depends_on": [3],
+        "output": "order_verified"
+      },
+      {
+        "step": 5,
+        "title": "TypeScript 编译检查",
+        "description": "运行 deno check 确保修改后代码无类型错误",
+        "modification_points": [
+          "运行 deno check --remote src/main.ts",
+          "检查是否有类型错误",
+          "检查是否有导入错误"
+        ],
+        "logic_flow": [
+          "执行 deno check --remote src/main.ts",
+          "检查输出中的错误信息",
+          "如果发现错误,回滚并分析原因",
+          "确认编译成功"
+        ],
+        "depends_on": [4],
+        "output": "compilation_verified"
+      }
+    ],
+    "target_files": [
+      "src/main.ts:101-125"
+    ]
+  }
+}

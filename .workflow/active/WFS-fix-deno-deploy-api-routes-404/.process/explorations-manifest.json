@@ -1,0 +1,28 @@
+{
+  "session_id": "WFS-fix-deno-deploy-api-routes-404",
+  "task_description": "GOAL: 修复 Deno Deploy API 路由 404 错误\nSCOPE: 修复 /api/config、/admin 等路由无法访问的问题\nCONTEXT: 应用返回正确的路由端点列表,但实际访问返回 404。根路径响应正常,Deno Deploy 导出格式已修复",
+  "timestamp": "2026-01-13T00:35:00Z",
+  "complexity": "Medium",
+  "exploration_count": 3,
+  "angles_explored": ["architecture", "error-handling", "dataflow"],
+  "explorations": [
+    {
+      "angle": "architecture",
+      "file": "exploration-architecture.json",
+      "path": ".workflow/active/WFS-fix-deno-deploy-api-routes-404/.process/exploration-architecture.json",
+      "index": 1
+    },
+    {
+      "angle": "error-handling",
+      "file": "exploration-error-handling.json",
+      "path": ".workflow/active/WFS-fix-deno-deploy-api-routes-404/.process/exploration-error-handling.json",
+      "index": 2
+    },
+    {
+      "angle": "dataflow",
+      "file": "exploration-dataflow.json",
+      "path": ".workflow/active/WFS-fix-deno-deploy-api-routes-404/.process/exploration-dataflow.json",
+      "index": 3
+    }
+  ]
+}

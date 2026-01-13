@@ -2,14 +2,17 @@
  * 管理页面路由
  */
 import { Router } from "oak";
+import { HealthCheckUseCase } from "../../application/use-cases/health-check.use-case.ts";
 
 export function createAdminRoute(): Router {
   const router = new Router();
+  const healthCheckUseCase = new HealthCheckUseCase();
 
-  // 注意：不要在这里设置 prefix，因为在 main.ts 中会使用 app.use(adminRouter.routes())
-  // 如果在这里设置 prefix("/admin")，会导致路由变成 /admin/admin/...
+  // 设置路由前缀为 /admin
+  // 注意: 使用 prefix 后，所有路由路径都会自动加上 /admin 前缀
+  router.prefix("/admin");
 
-  // GET / - 管理页面首页
+  // GET /admin - 管理页面首页
   router.get("/", async (ctx) => {
     ctx.response.headers.set("Content-Type", "text/html; charset=utf-8");
     ctx.response.body = getAdminPageHTML();
@@ -17,49 +20,72 @@ export function createAdminRoute(): Router {
 
   // GET /api/stats - 获取统计信息
   router.get("/api/stats", async (ctx) => {
-    // 这里可以从实际的缓存服务获取数据
-    ctx.response.body = {
-      totalRequests: Math.floor(Math.random() * 10000) + 5000,
-      todayRequests: Math.floor(Math.random() * 1000) + 500,
-      avgResponseTime: Math.floor(Math.random() * 500) + 100,
-      uptime: "2d 5h 32m",
-      sources: {
-        total: 7,
-        healthy: 6,
-        degraded: 1,
-        failed: 0,
-      },
-      cache: {
-        hitRate: 0.72,
-        size: "45.2 KB",
-        entries: 12,
-      },
-      lastUpdated: new Date().toISOString(),
-    };
+    try {
+      // 获取真实的健康检查数据
+      const healthReport = await healthCheckUseCase.checkAllSources();
+
+      ctx.response.body = {
+        totalRequests: 0, // TODO: 从实际请求统计获取
+        todayRequests: 0, // TODO: 从实际请求统计获取
+        avgResponseTime: healthReport.sources.length > 0
+          ? Math.round(healthReport.sources.reduce((sum, s) => sum + s.responseTime, 0) / healthReport.sources.length)
+          : 0,
+        uptime: "N/A", // TODO: 从实际运行时获取
+        sources: {
+          total: healthReport.total,
+          healthy: healthReport.healthy,
+          degraded: healthReport.degraded,
+          failed: healthReport.failed,
+        },
+        cache: {
+          hitRate: 0, // TODO: 从缓存服务获取
+          size: "N/A",
+          entries: 0, // TODO: 从缓存服务获取
+        },
+        lastUpdated: healthReport.lastChecked.toISOString(),
+      };
+    } catch (error) {
+      console.error("[Admin Stats API] Error:", error);
+      ctx.response.status = 500;
+      ctx.response.body = {
+        error: "Internal Server Error",
+        message: error?.message || "Unknown error",
+      };
+    }
   });
 
   // GET /api/sources - 获取源配置列表
   router.get("/api/sources", async (ctx) => {
     try {
+      // 获取源配置和健康状态
+      const healthReport = await healthCheckUseCase.checkAllSources();
       const content = await Deno.readTextFile(
         new URL("../../../config/sources.json", import.meta.url)
       );
-      const sources = JSON.parse(content);
+      const sourcesConfig = JSON.parse(content);
+
+      // 合并配置和健康状态
+      const sourceMap = new Map(healthReport.sources.map(s => [s.sourceId, s]));
+      const sourcesWithStatus = sourcesConfig.map((config: any) => {
+        const health = sourceMap.get(config.id);
+        return {
+          ...config,
+          status: health?.status || "unknown",
+          responseTime: health?.responseTime || 0,
+          lastChecked: health?.lastChecked || new Date(),
+        };
+      });
 
       ctx.response.body = {
         success: true,
-        data: sources.map((s: any) => ({
-          ...s,
-          status: Math.random() > 0.2 ? "healthy" : "degraded", // 模拟状态
-          responseTime: Math.floor(Math.random() * 1000) + 100,
-          lastChecked: new Date(Date.now() - Math.random() * 3600000).toISOString(),
-        })),
+        data: sourcesWithStatus,
       };
     } catch (error) {
+      console.error("[Admin Sources API] Error:", error);
       ctx.response.status = 500;
       ctx.response.body = {
         success: false,
-        error: error.message,
+        error: error?.message || "Unknown error",
       };
     }
   });

@@ -1,0 +1,133 @@
+{
+  "id": "IMPL-002",
+  "title": "诊断并修复 Config API 返回空数组问题",
+  "status": "completed",
+  "context_package_path": ".workflow/active/WFS-fix-config-data-inconsistency/context-package.json",
+  "cli_execution_id": "WFS-fix-config-data-inconsistency-IMPL-002",
+  "cli_execution": {
+    "strategy": "new"
+  },
+  "meta": {
+    "type": "bugfix",
+    "agent": "@code-developer",
+    "execution_group": null,
+    "module": null,
+    "execution_config": {
+      "method": "agent",
+      "cli_tool": "auto",
+      "enable_resume": true,
+      "previous_cli_id": null
+    }
+  },
+  "context": {
+    "requirements": [
+      "分析 2 个文件: [src/application/use-cases/aggregate-config.use-case.ts, src/domain/entities/config-source.entity.ts]",
+      "定位 isAvailable() 过滤逻辑问题 (第 125-126 行)",
+      "修改 1 个函数: isAvailable() 逻辑或过滤策略",
+      "确保 /api/config 返回非空数组 (7 个源配置)"
+    ],
+    "focus_paths": [
+      "src/application/use-cases/aggregate-config.use-case.ts",
+      "src/domain/entities/config-source.entity.ts"
+    ],
+    "acceptance": [
+      "1 个过滤逻辑已修复: isAvailable() 或 excludeFailed 参数处理",
+      "API 返回 7 个源: 验证 curl -s http://localhost:8000/api/config | jq '.total' = 7",
+      "所有源包含状态字段: 验证 jq '.sources[] | .status' 存在",
+      "响应时间 < 2s: 验证 curl -w '%{time_total}' -s -o /dev/null http://localhost:8000/api/config < 2"
+    ],
+    "depends_on": [],
+    "inherited": {
+      "from": null,
+      "context": []
+    },
+    "shared_context": {
+      "tech_stack": ["Deno", "TypeScript", "Oak"],
+      "filtering_pattern": "isAvailable() 检查 enabled 和 status !== FAILED",
+      "health_status": "Health API 显示所有 7 个源状态为 failed",
+      "config_sources": "sources.json 定义 7 个启用的源"
+    },
+    "artifacts": []
+  },
+  "flow_control": {
+    "pre_analysis": [
+      {
+        "step": "load_context_package",
+        "action": "加载会话上下文和项目元数据",
+        "commands": ["Read(.workflow/active/WFS-fix-config-data-inconsistency/workflow-session.json)"],
+        "output_to": "session_context",
+        "on_error": "fail"
+      },
+      {
+        "step": "analyze_config_filtering",
+        "action": "分析 Config API 过滤逻辑和健康检查状态",
+        "commands": [
+          "Read(src/application/use-cases/aggregate-config.use-case.ts 第 120-135 行)",
+          "Read(src/domain/entities/config-source.entity.ts 第 60-65 行)",
+          "bash(curl -s http://localhost:8000/api/health | jq '.sources[].status')"
+        ],
+        "output_to": "filtering_analysis",
+        "on_error": "fail"
+      }
+    ],
+    "implementation_approach": [
+      {
+        "step": 1,
+        "title": "分析过滤逻辑和健康状态不匹配原因",
+        "description": "理解为什么所有源在 Health API 中显示 failed，但 Config API 应该返回它们",
+        "modification_points": [
+          "分析 isAvailable() 方法的逻辑: enabled && status !== FAILED",
+          "检查 Health Check 如何设置源状态",
+          "确认 Config API 的 excludeFailed 默认行为"
+        ],
+        "logic_flow": [
+          "读取 Health Check 用例代码，理解状态设置逻辑",
+          "读取 aggregate-config.use-case.ts 过滤逻辑",
+          "确定问题根源: Health check 标记所有源为 failed",
+          "决策: 是否修改过滤策略或修复 Health check 逻辑"
+        ],
+        "depends_on": [],
+        "output": "filtering_root_cause"
+      },
+      {
+        "step": 2,
+        "title": "修改 Config API 过滤策略",
+        "description": "调整 /api/config 的默认过滤行为，返回所有启用的源（包括 failed 状态）",
+        "modification_points": [
+          "修改 1 个文件: src/application/use-cases/aggregate-config.use-case.ts 第 125-126 行",
+          "调整过滤逻辑: 移除默认 excludeFailed 行为",
+          "在响应中包含每个源的实际状态 (healthy/degraded/failed)"
+        ],
+        "logic_flow": [
+          "定位 aggregate-config.use-case.ts 的过滤代码段",
+          "修改默认的 excludeFailed 行为: 改为 excludeFailed: false",
+          "确保响应中的每个源包含 status 字段",
+          "测试 API 返回所有 7 个源及其状态"
+        ],
+        "depends_on": [1],
+        "output": "config_api_fixed"
+      },
+      {
+        "step": 3,
+        "title": "验证 Config API 响应",
+        "description": "测试 /api/config 端点返回完整的源列表",
+        "modification_points": [
+          "测试 3 个场景: [默认调用, excludeFailed=true, excludeFailed=false]",
+          "验证 total 字段等于 7",
+          "验证每个源包含 status 字段"
+        ],
+        "logic_flow": [
+          "测试 curl -s http://localhost:8000/api/config | jq '.total'",
+          "测试 curl -s http://localhost:8000/api/config?excludeFailed=false | jq '.total'",
+          "验证 jq '.sources | length' = 7",
+          "验证 jq '.sources[] | .status' 所有值存在"
+        ],
+        "depends_on": [2],
+        "output": "config_api_verification"
+      }
+    ],
+    "target_files": [
+      "src/application/use-cases/aggregate-config.use-case.ts:filtered.filter:125-126"
+    ]
+  }
+}

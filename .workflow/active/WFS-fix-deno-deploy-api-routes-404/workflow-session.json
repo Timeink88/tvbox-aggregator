@@ -1,0 +1,7 @@
+{
+  "session_id": "WFS-fix-deno-deploy-api-routes-404",
+  "project": "修复 Deno Deploy API 路由 404 错误",
+  "status": "planning",
+  "type": "workflow",
+  "created_at": "2026-01-13T00:30:00Z"
+}

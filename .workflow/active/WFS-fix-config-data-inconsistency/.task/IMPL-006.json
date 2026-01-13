@@ -1,0 +1,191 @@
+{
+  "id": "IMPL-006",
+  "title": "集成测试和端到端验证",
+  "status": "completed",
+  "context_package_path": ".workflow/active/WFS-fix-config-data-inconsistency/context-package.json",
+  "cli_execution_id": "WFS-fix-config-data-inconsistency-IMPL-006",
+  "cli_execution": {
+    "strategy": "merge_fork",
+    "merge_from": [
+      "WFS-fix-config-data-inconsistency-IMPL-001",
+      "WFS-fix-config-data-inconsistency-IMPL-002",
+      "WFS-fix-config-data-inconsistency-IMPL-005"
+    ]
+  },
+  "meta": {
+    "type": "test-gen",
+    "agent": "@code-developer",
+    "execution_group": null,
+    "module": null,
+    "execution_config": {
+      "method": "agent",
+      "cli_tool": "auto",
+      "enable_resume": true,
+      "previous_cli_id": null
+    }
+  },
+  "context": {
+    "requirements": [
+      "创建 1 个测试文件: tests/integration/api-integration.test.ts",
+      "测试 5 个端点: [GET /admin, GET /admin/api/stats, GET /admin/api/sources, GET /api/config, GET /api/health, GET /api/stats]",
+      "验证 3 个核心功能: [Admin 路由可访问, Config API 返回数据, Health/Stats 数据一致]",
+      "生成 1 个测试报告: coverage >= 80%"
+    ],
+    "focus_paths": [
+      "tests/integration/api-integration.test.ts",
+      "src/main.ts",
+      "src/presentation/api/"
+    ],
+    "acceptance": [
+      "1 个测试文件已创建: tests/integration/api-integration.test.ts",
+      "6 个测试用例通过: 验证 deno test --allow-all tests/integration/api-integration.test.ts",
+      "覆盖率 >= 80%: 验证 deno test --coverage --allow-all",
+      "所有修复功能正常工作"
+    ],
+    "depends_on": ["IMPL-001", "IMPL-002", "IMPL-005"],
+    "inherited": {
+      "from": ["IMPL-001", "IMPL-002", "IMPL-005"],
+      "context": [
+        "Admin 路由已修复 (IMPL-001)",
+        "Config API 过滤逻辑已优化 (IMPL-002)",
+        "Stats API 数据源已统一 (IMPL-005)"
+      ]
+    },
+    "shared_context": {
+      "tech_stack": ["Deno", "Oak", "TypeScript", "Deno Test"],
+      "test_framework": "Deno 内置测试框架 (Deno.test)",
+      "integration_pattern": "启动测试服务器，调用 API，验证响应",
+      "coverage_target": "80% 代码覆盖率"
+    },
+    "artifacts": []
+  },
+  "flow_control": {
+    "pre_analysis": [
+      {
+        "step": "load_context_package",
+        "action": "加载会话上下文和所有前置任务结果",
+        "commands": [
+          "Read(.workflow/active/WFS-fix-config-data-inconsistency/workflow-session.json)",
+          "Read(.workflow/active/WFS-fix-config-data-inconsistency/.task/IMPL-001.json)",
+          "Read(.workflow/active/WFS-fix-config-data-inconsistency/.task/IMPL-002.json)",
+          "Read(.workflow/active/WFS-fix-config-data-inconsistency/.task/IMPL-005.json)"
+        ],
+        "output_to": "session_context",
+        "on_error": "fail"
+      },
+      {
+        "step": "analyze_codebase_structure",
+        "action": "分析现有测试结构和 API 端点",
+        "commands": [
+          "bash(find /d/Code/tvbox/tests -name '*.test.ts' 2>/dev/null | head -10)",
+          "bash(ls -la /d/Code/tvbox/tests 2>/dev/null || echo 'tests directory does not exist')",
+          "Read(src/main.ts)"
+        ],
+        "output_to": "test_structure_analysis",
+        "on_error": "skip_optional"
+      }
+    ],
+    "implementation_approach": [
+      {
+        "step": 1,
+        "title": "创建集成测试目录结构",
+        "description": "设置测试目录和基础测试配置",
+        "modification_points": [
+          "创建 1 个目录: tests/integration/",
+          "创建 1 个辅助文件: tests/integration/test-helpers.ts (可选)"
+        ],
+        "logic_flow": [
+          "创建 tests/integration 目录",
+          "决定是否需要测试辅助工具 (测试服务器启动/停止)",
+          "准备测试环境配置"
+        ],
+        "depends_on": [],
+        "output": "test_structure_ready"
+      },
+      {
+        "step": 2,
+        "title": "实现 Admin 路由集成测试",
+        "description": "测试 Admin 路由的 3 个主要端点",
+        "modification_points": [
+          "创建 3 个测试用例: [GET /admin, GET /admin/api/stats, GET /admin/api/sources]",
+          "验证 HTTP 状态码",
+          "验证响应内容格式",
+          "验证关键字段存在"
+        ],
+        "logic_flow": [
+          "创建测试套件 'Admin Routes Integration'",
+          "测试 GET /admin:\n  - 验证状态码 200\n  - 验证 Content-Type: text/html\n  - 验证包含 'TVBox 聚合服务' 文本",
+          "测试 GET /admin/api/stats:\n  - 验证状态码 200\n  - 验证包含 totalRequests, sources 等字段",
+          "测试 GET /admin/api/sources:\n  - 验证状态码 200\n  - 验证返回数组"
+        ],
+        "depends_on": [1],
+        "output": "admin_tests_implemented"
+      },
+      {
+        "step": 3,
+        "title": "实现 Config API 集成测试",
+        "description": "测试 /api/config 端点返回完整源列表",
+        "modification_points": [
+          "创建 2 个测试用例: [默认调用, excludeFailed=false]",
+          "验证 total = 7",
+          "验证每个源包含 status 字段"
+        ],
+        "logic_flow": [
+          "创建测试套件 'Config API Integration'",
+          "测试 GET /api/config:\n  - 验证 total = 7\n  - 验证 sources 数组长度 = 7\n  - 验证每个源有 name, url, status 字段",
+          "测试 GET /api/config?excludeFailed=false:\n  - 验证返回所有源 (包括 failed)",
+          "测试 GET /api/config?excludeFailed=true:\n  - 验证只返回 healthy/degraded 源"
+        ],
+        "depends_on": [1],
+        "output": "config_tests_implemented"
+      },
+      {
+        "step": 4,
+        "title": "实现 Health/Stats 一致性测试",
+        "description": "验证 Health 和 Stats API 返回一致的健康状态",
+        "modification_points": [
+          "创建 1 个测试用例: 对比 3 个 API 的健康计数",
+          "验证 healthy/degraded/failed 数值一致",
+          "验证数据实时性"
+        ],
+        "logic_flow": [
+          "创建测试套件 'Health & Stats Consistency'",
+          "调用 3 个 API: /api/health, /api/stats, /admin/api/stats",
+          "对比 3 个 API 的:\n  - sources.healthy\n  - sources.degraded\n  - sources.failed\n  - 验证它们完全相等",
+          "验证 Cache-Control 响应头"
+        ],
+        "depends_on": [1],
+        "output": "consistency_tests_implemented"
+      },
+      {
+        "step": 5,
+        "title": "运行集成测试并生成覆盖率报告",
+        "description": "执行所有集成测试并验证通过率",
+        "modification_points": [
+          "运行 1 个命令: deno test --allow-all tests/integration/",
+          "验证所有测试通过",
+          "生成覆盖率报告",
+          "验证 coverage >= 80%"
+        ],
+        "logic_flow": [
+          "运行测试: deno test --allow-all --coverage tests/integration/",
+          "检查测试输出，确认所有测试通过",
+          "生成覆盖率报告: deno coverage coverage --lcov",
+          "验证覆盖率 >= 80%",
+          "记录测试结果"
+        ],
+        "depends_on": [2, 3, 4],
+        "output": "test_report_generated"
+      }
+    ],
+    "target_files": [
+      "tests/integration/api-integration.test.ts",
+      "tests/integration/test-helpers.ts"
+    ],
+    "test_commands": {
+      "run_tests": "deno test --allow-all tests/integration/",
+      "run_coverage": "deno test --allow-all --coverage tests/integration/",
+      "run_specific": "deno test --allow-all tests/integration/api-integration.test.ts"
+    }
+  }
+}

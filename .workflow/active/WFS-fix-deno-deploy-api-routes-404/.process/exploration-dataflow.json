@@ -1,0 +1,127 @@
+{
+  "project_structure": {
+    "request_flow": "Deno Deploy → fetch handler → Oak app.handle() → Middleware chain → Router → Response",
+    "entry_point": "src/main.ts:138-161 (Deno Deploy fetch handler)",
+    "middleware_chain_order": [
+      "corsMiddleware",
+      "errorHandlerMiddleware",
+      "cacheMiddleware",
+      "Root path handler (/)",
+      "Admin router (/admin/*)",
+      "API routers (/api/*)",
+      "OPTIONS handler"
+    ]
+  },
+  "relevant_files": [
+    {
+      "path": "src/main.ts",
+      "relevance": 0.95,
+      "rationale": "包含完整的请求处理流程：Deno Deploy fetch 导出、oakRequest 构造、app.handle() 调用"
+    },
+    {
+      "path": "src/presentation/api/middleware/cors.middleware.ts",
+      "relevance": 0.7,
+      "rationale": "CORS 中间件处理 OPTIONS 请求，可能影响请求流程"
+    },
+    {
+      "path": "src/presentation/api/admin.route.ts",
+      "relevance": 0.75,
+      "rationale": "工作正常的路由参考，可以对比数据流差异"
+    },
+    {
+      "path": "src/presentation/api/v1/config.route.ts",
+      "relevance": 0.8,
+      "rationale": "问题路由，数据流在此中断"
+    },
+    {
+      "path": "src/presentation/api/middleware/cache.middleware.ts",
+      "relevance": 0.5,
+      "rationale": "缓存中间件在响应处理阶段执行"
+    }
+  ],
+  "patterns": [
+    "✅ 正确模式: Admin 路由使用 app.use('/admin', router.routes())，数据流正常",
+    "❌ 问题模式: API 路由使用手动中间件链，handled 标志逻辑错误",
+    "❌ 问题模式: oakRequest 对象构造不完整，可能缺少 Oak 内部需要的属性",
+    "关键问题: 回调函数在 routes() 返回的中间件内部总是被调用，handled 总是变为 true"
+  ],
+  "dependencies": {
+    "request_components": [
+      "Deno Deploy Request",
+      "oakRequest (constructed)",
+      "Oak Context",
+      "Oak Response"
+    ],
+    "middleware_flow": [
+      "Request → CORS → ErrorHandler → Cache → Routes → OPTIONS → Response"
+    ]
+  },
+  "integration_points": [
+    {
+      "location": "src/main.ts:143-153",
+      "description": "Deno Deploy fetch handler",
+      "data_flow": "Request → oakRequest → app.handle() → Response",
+      "issue": "oakRequest 是简化对象，可能缺少 Oak Application.handle() 所需的完整 Context 属性"
+    },
+    {
+      "location": "src/main.ts:97-98",
+      "description": "Admin 路由挂载点（正常工作）",
+      "data_flow": "Request → app.use('/admin') → Admin Router → Handler → Response",
+      "status": "working"
+    },
+    {
+      "location": "src/main.ts:108-124",
+      "description": "API 路由包装器（问题所在）",
+      "data_flow": "Request → Manual middleware chain → handled flag check → Router → Response",
+      "issue": "handled 标志总是为 true（回调立即执行），后续路由永远不会被尝试"
+    },
+    {
+      "location": "src/main.ts:84-86",
+      "description": "中间件注册点",
+      "note": "CORS 和 ErrorHandler 在最前，可以提前处理和拦截错误"
+    }
+  ],
+  "constraints": [
+    "Deno Deploy 需要标准的 fetch API 兼容性",
+    "Oak Application.handle() 期望完整的 Oak Context 对象",
+    "中间件必须遵循 async (ctx, next) => {} 签名",
+    "请求处理流程必须按照 Oak 的中间件执行顺序",
+    "CORS 中间件需要最先处理 OPTIONS 请求（提前返回 204）"
+  ],
+  "clarification_needs": [
+    {
+      "question": "API 路由的数据流应该如何修复？",
+      "options": [
+        "修复 handled 标志逻辑，检查 ctx.response.body 或 ctx.response.status",
+        "完全移除手动中间件链，使用 app.use() 直接挂载（推荐）",
+        "重构 oakRequest 构造，提供完整的 Oak Context",
+        "使用第三方 Deno Deploy 适配器"
+      ],
+      "recommended_index": 1,
+      "rationale": "使用 app.use() 直接挂载最简单可靠，与 Admin 路由保持一致"
+    },
+    {
+      "question": "oakRequest 对象构造是否需要改进？",
+      "options": [
+        "保持当前构造，重构路由挂载方式",
+        "扩展 oakRequest，添加更多 Oak Context 属性",
+        "使用 Oak 的官方方法创建 Context（如果存在）",
+        "完全使用 app.use() 模式，不需要手动构造 Context"
+      ],
+      "recommended_index": 3,
+      "rationale": "如果使用标准 app.use() 模式，Oak 会自动处理 Context，不需要手动构造"
+    }
+  ],
+  "_metadata": {
+    "exploration_angle": "dataflow",
+    "exploration_index": 3,
+    "timestamp": "2026-01-13T00:35:00Z",
+    "key_findings": [
+      "请求流向: Deno Deploy → fetch handler → oakRequest → app.handle() → Middleware → Router → Response",
+      "关键问题: src/main.ts:101-125 的 handled 标志逻辑错误，回调总是立即执行",
+      "Admin 路由使用标准 app.use() 模式，工作正常",
+      "API 路由使用手动中间件链，但实现错误导致路由无法匹配",
+      "oakRequest 对象可能不完整，但这可能不是主要问题"
+    ]
+  }
+}

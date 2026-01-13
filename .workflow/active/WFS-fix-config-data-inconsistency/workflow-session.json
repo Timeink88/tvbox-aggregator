@@ -1,0 +1,7 @@
+{
+  "session_id": "WFS-fix-config-data-inconsistency",
+  "project": "修复配置数据不一致和缺失接口问题",
+  "status": "planning",
+  "type": "workflow",
+  "created_at": "2026-01-13T01:25:00Z"
+}

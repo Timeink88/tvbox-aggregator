@@ -37,39 +37,38 @@ export class AggregateConfigUseCase {
   async execute(options: AggregateOptions = {}): Promise<AggregatedConfig> {
     const startTime = Date.now();
 
+    // 默认不排除失败的源，确保返回所有启用的源及其状态
+    const effectiveOptions = {
+      ...options,
+      excludeFailed: options.excludeFailed ?? false,
+    };
+
     // 1. 尝试从缓存获取
-    const cacheKey = this.generateCacheKey(options);
+    const cacheKey = this.generateCacheKey(effectiveOptions);
     const cached = await this.cacheService.get<AggregatedConfig>(cacheKey);
     if (cached) {
-      console.log(`[Cache Hit] Returning cached config`);
+      console.log(`[Cache Hit] Returning cached config, total: ${cached.total}`);
       return cached;
     }
 
     // 2. 加载源配置
     const sources = await this.loadSources();
 
-    // 3. 应用过滤规则
-    const filteredSources = this.applyFilters(sources, options);
+    // 3. 应用过滤规则（获取所有启用的源）
+    const filteredSources = this.applyFilters(sources, effectiveOptions);
 
-    // 4. 获取和验证配置
-    const validator = new SourceValidatorService();
-    const validConfigs = await this.fetchValidConfigs(
-      filteredSources,
-      validator
-    );
-
-    // 5. 构建聚合结果
+    // 4. 构建聚合结果（直接返回源列表，包含状态）
     const result: AggregatedConfig = {
       version: new Date().toISOString().split("T")[0],
-      sources: validConfigs.map((config) => ({
-        name: config.name || "Unknown",
-        url: config.url || "",
-        icon: config.icon,
-        priority: config.priority || 50,
-        status: "healthy",
+      sources: filteredSources.map((source) => ({
+        name: source.name,
+        url: source.url,
+        icon: source.icon,
+        priority: source.priority,
+        status: source.status || "unknown", // 包含实际状态
       })),
-      total: validConfigs.length,
-      healthySources: validConfigs.length,
+      total: filteredSources.length,
+      healthySources: filteredSources.filter((s) => s.status === "healthy").length,
       generatedAt: new Date(),
       cacheTTL: 3600,
     };

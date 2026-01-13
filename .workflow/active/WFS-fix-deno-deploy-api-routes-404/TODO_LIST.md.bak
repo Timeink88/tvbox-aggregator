@@ -1,0 +1,91 @@
+# 任务: 修复 Deno Deploy API 路由 404 错误
+
+## 任务进度
+
+- [x] **IMPL-001**: 移除 API 路由中的 router.prefix() 定义 → [📋](./.task/IMPL-001.json) | [✅](./.summaries/IMPL-001-summary.md)
+- [x] **IMPL-002**: 重构 main.ts 路由注册为标准 Oak 模式 → [📋](./.task/IMPL-002.json) | [✅](./.summaries/IMPL-002-summary.md)
+- [ ] **IMPL-003**: 验证路由功能并确认 404 问题解决 → [📋](./.task/IMPL-003.json)
+- [ ] **IMPL-004**: 优化和清理代码 → [📋](./.task/IMPL-004.json)
+
+## 任务依赖关系
+
+```
+IMPL-001 (移除 prefix)
+    ↓
+IMPL-002 (重构路由注册)
+    ↓
+IMPL-003 (验证功能)
+    ↓
+IMPL-004 (优化代码)
+```
+
+## 状态说明
+
+- `- [ ]` = 待处理任务
+- `- [x]` = 已完成任务
+
+## 任务摘要
+
+### IMPL-001: 移除 API 路由中的 router.prefix() 定义
+
+**目标**: 从 3 个路由文件中移除 router.prefix('/api') 调用,为后续重构做准备。
+
+**关键行动**:
+- 修改 src/presentation/api/v1/config.route.ts
+- 修改 src/presentation/api/v1/health.route.ts
+- 修改 src/presentation/api/v1/stats.route.ts
+
+**验收标准**:
+- grep router.prefix 返回 0 结果
+- 路由导出保持存在
+- TypeScript 编译通过
+
+---
+
+### IMPL-002: 重构 main.ts 路由注册为标准 Oak 模式
+
+**目标**: 完全重构 src/main.ts 的路由注册逻辑,从错误的手动中间件链改为标准 Oak app.use() 模式。
+
+**关键行动**:
+- 移除 src/main.ts:101-125 的手动中间件链
+- 添加 6 个标准 app.use() 调用
+- 验证路由注册顺序
+
+**验收标准**:
+- grep handled 返回 0 结果
+- grep app.use('/api') 返回 6 个结果
+- Admin 路由保持正常
+- TypeScript 编译通过
+
+---
+
+### IMPL-003: 验证路由功能并确认 404 问题解决
+
+**目标**: 启动应用并测试所有端点,确认 404 问题已解决。
+
+**关键行动**:
+- 启动应用
+- 测试 7 个端点: GET /, GET /admin, GET /api/config, GET /api/health, GET /api/health/check, GET /api/stats, OPTIONS /api/*
+- 创建测试文档
+
+**验收标准**:
+- 所有 API 路由返回 200
+- Admin 路由保持正常
+- 测试文档完整
+
+---
+
+### IMPL-004: 优化和清理代码
+
+**目标**: 添加详细注释,确保代码风格一致性,提高可维护性。
+
+**关键行动**:
+- 添加路由注册注释
+- 添加 JSDoc 注释
+- 检查代码风格一致性
+- 最终验证
+
+**验收标准**:
+- 注释覆盖率 ≥ 30%
+- 代码风格统一
+- 所有功能仍正常

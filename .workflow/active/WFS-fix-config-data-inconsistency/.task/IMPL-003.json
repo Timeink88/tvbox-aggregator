@@ -1,0 +1,154 @@
+{
+  "id": "IMPL-003",
+  "title": "调查 Health/Stats 数据不一致问题",
+  "status": "completed",
+  "context_package_path": ".workflow/active/WFS-fix-config-data-inconsistency/context-package.json",
+  "cli_execution_id": "WFS-fix-config-data-inconsistency-IMPL-003",
+  "cli_execution": {
+    "strategy": "new"
+  },
+  "meta": {
+    "type": "bugfix",
+    "agent": "@code-developer",
+    "execution_group": null,
+    "module": null,
+    "execution_config": {
+      "method": "agent",
+      "cli_tool": "auto",
+      "enable_resume": true,
+      "previous_cli_id": null
+    }
+  },
+  "context": {
+    "requirements": [
+      "分析 3 个文件: [src/presentation/api/v1/health.route.ts, src/presentation/api/v1/stats.route.ts, src/application/services/cache-manager.service.ts]",
+      "对比 Health API 和 Stats API 的数据来源",
+      "定位数据不一致的根本原因",
+      "修复数据来源不一致问题"
+    ],
+    "focus_paths": [
+      "src/presentation/api/v1/health.route.ts",
+      "src/presentation/api/v1/stats.route.ts",
+      "src/application/services/cache-manager.service.ts"
+    ],
+    "acceptance": [
+      "1 个根本原因已定位: Health 和 Stats 数据来源不一致",
+      "2 个 API 数据一致: 验证 curl -s http://localhost:8000/api/health | jq '.failed' = curl -s http://localhost:8000/api/stats | jq '.sources.failed'",
+      "修复方案已实施: 统一数据源或修正数据计算逻辑"
+    ],
+    "depends_on": [],
+    "inherited": {
+      "from": null,
+      "context": []
+    },
+    "shared_context": {
+      "tech_stack": ["Deno", "Oak", "TypeScript"],
+      "health_api_data": "Health API: 7 failed sources (实时健康检查)",
+      "stats_api_data": "Stats API: 6 healthy, 1 degraded (模拟数据)",
+      "inconsistency": "两个 API 显示完全不同的健康状态"
+    },
+    "artifacts": []
+  },
+  "flow_control": {
+    "pre_analysis": [
+      {
+        "step": "load_context_package",
+        "action": "加载会话上下文和项目元数据",
+        "commands": ["Read(.workflow/active/WFS-fix-config-data-inconsistency/workflow-session.json)"],
+        "output_to": "session_context",
+        "on_error": "fail"
+      },
+      {
+        "step": "compare_health_stats_apis",
+        "action": "对比 Health 和 Stats API 的数据来源",
+        "commands": [
+          "Read(src/presentation/api/v1/health.route.ts)",
+          "Read(src/presentation/api/v1/stats.route.ts)",
+          "bash(curl -s http://localhost:8000/api/health | jq '{total, healthy, degraded, failed}')",
+          "bash(curl -s http://localhost:8000/api/stats | jq '.sources')"
+        ],
+        "output_to": "api_comparison",
+        "on_error": "fail"
+      }
+    ],
+    "implementation_approach": [
+      {
+        "step": 1,
+        "title": "定位 Health 和 Stats API 数据来源",
+        "description": "分析两个 API 的数据源，确定为什么返回不一致的健康状态",
+        "modification_points": [
+          "分析 2 个路由文件: health.route.ts 和 stats.route.ts",
+          "检查 Stats API 是否使用模拟数据 (硬编码值)",
+          "确认 Health API 是否执行实时健康检查"
+        ],
+        "logic_flow": [
+          "读取 health.route.ts 代码，确认数据来自 HealthCheckUseCase",
+          "读取 stats.route.ts 代码，检查数据来源",
+          "对比 admin.route.ts 中的 /admin/api/stats 端点 (发现使用硬编码模拟数据)",
+          "确认 Stats API 是否也有模拟数据问题"
+        ],
+        "depends_on": [],
+        "output": "data_sources_identified"
+      },
+      {
+        "step": 2,
+        "title": "分析 Health Check 为什么标记所有源失败",
+        "description": "理解 Health Check 用例的逻辑，确定为什么所有 7 个源都被标记为 failed",
+        "modification_points": [
+          "分析 2 个文件: [src/application/use-cases/health-check.use-case.ts, src/domain/services/source-validator.service.ts]",
+          "检查 SourceValidatorService 的验证逻辑",
+          "确定验证失败的具体原因"
+        ],
+        "logic_flow": [
+          "读取 health-check.use-case.ts 完整代码",
+          "读取 source-validator.service.ts",
+          "理解验证逻辑: 检查什么条件判断源为 failed",
+          "记录所有验证失败的具体原因"
+        ],
+        "depends_on": [1],
+        "output": "health_check_analysis"
+      },
+      {
+        "step": 3,
+        "title": "修复 Stats API 数据源或调整 Health Check",
+        "description": "根据分析结果，修复 Stats API 使用真实数据，或调整 Health Check 验证逻辑",
+        "modification_points": [
+          "修改 1 个文件: stats.route.ts 或 source-validator.service.ts",
+          "选项 A: 让 Stats API 使用 Health Check 结果",
+          "选项 B: 修复 Health Check 验证逻辑 (如果误判)"
+        ],
+        "logic_flow": [
+          "基于分析结果决策修复策略",
+          "如果 Stats API 使用模拟数据: 修改为使用真实健康检查结果",
+          "如果 Health Check 误判: 修复验证逻辑",
+          "确保两个 API 返回一致的健康状态"
+        ],
+        "depends_on": [2],
+        "output": "stats_api_fixed"
+      },
+      {
+        "step": 4,
+        "title": "验证数据一致性",
+        "description": "测试 Health 和 Stats API 返回一致的源健康状态",
+        "modification_points": [
+          "测试 2 个 API: [GET /api/health, GET /api/stats]",
+          "对比 healthy/degraded/failed 计数",
+          "验证数据一致性"
+        ],
+        "logic_flow": [
+          "调用 curl -s http://localhost:8000/api/health | jq '.healthy, .degraded, .failed'",
+          "调用 curl -s http://localhost:8000/api/stats | jq '.sources'",
+          "对比两个 API 的 healthy/degraded/failed 数值",
+          "确认数据一致性"
+        ],
+        "depends_on": [3],
+        "output": "consistency_verification"
+      }
+    ],
+    "target_files": [
+      "src/presentation/api/v1/stats.route.ts",
+      "src/application/use-cases/health-check.use-case.ts",
+      "src/domain/services/source-validator.service.ts"
+    ]
+  }
+}
