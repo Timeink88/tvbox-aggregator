@@ -3,9 +3,7 @@
 # Deno
 .deno/
 *.log
-
-# Reports
-reports/
+deno.lock
 
 # Dependencies
 node_modules/
@@ -31,3 +29,31 @@ build/
 
 # Workflow files (Claude Code)
 .workflow/
+.spec-workflow/
+
+# Temporary files
+*.tmp
+*.bak
+*.old
+tmp_*.json
+
+# Test files
+tests/
+test-results.md
+*.test.ts
+
+# Documentation
+docs/
+CHANGELOG.md
+DEPLOYMENT.md
+DEPLOY_INSTRUCTIONS.md
+GITHUB_UPLOAD.md
+QUICK_DEPLOY.md
+
+# Scripts
+scripts/
+deploy*.sh
+deploy*.bat
+
+# Development
+dev_server*.log
