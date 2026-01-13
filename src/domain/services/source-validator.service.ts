@@ -58,7 +58,23 @@ export class SourceValidatorService {
         `[SourceValidator] ${source.name}: ${result.status} (${responseTime}ms)`
       );
 
+      // 调试日志：检查result.config
+      console.debug(
+        `[SourceValidator] ${source.name}: result.config =`,
+        result.config ? "EXISTS" : "NULL/UNDEFINED",
+        result.config ? `(keys: ${Object.keys(result.config).join(", ")})` : ""
+      );
+
+      // HEALTHY 状态或有配置内容的 DEGRADED 状态都返回配置
       if (result.status === SourceStatus.HEALTHY && result.config) {
+        return result.config;
+      }
+
+      // DEGRADED 状态如果有配置内容也返回（例如：配置不完整但仍有价值）
+      if (result.status === SourceStatus.DEGRADED && result.config) {
+        console.log(
+          `[SourceValidator] ${source.name}: Returning degraded config`
+        );
         return result.config;
       }
 
@@ -109,7 +125,8 @@ export class SourceValidatorService {
       if (config && this.isValidTVBoxConfig(config)) {
         return { status: SourceStatus.HEALTHY, config };
       } else {
-        return { status: SourceStatus.DEGRADED };
+        // DEGRADED 状态也返回配置（即使不完整）
+        return { status: SourceStatus.DEGRADED, config };
       }
     } catch (error) {
       // 如果快速请求成功，但完整请求失败，标记为 degraded
@@ -175,9 +192,25 @@ export class SourceValidatorService {
 
       const text = await response.text();
 
-      // 清理并解析JSON
-      const clean = this.cleanJsonText(text);
-      const config = JSON.parse(clean);
+      // 清理并解析JSON（增强容错性）
+      let config;
+      try {
+        // 第一次尝试：直接解析
+        config = JSON.parse(text);
+      } catch {
+        try {
+          // 第二次尝试：清理后解析
+          const clean = this.cleanJsonText(text);
+          config = JSON.parse(clean);
+        } catch {
+          // 第三次尝试：去除 BOM 和其他字符后解析
+          const cleaned = text
+            .replace(/^\uFEFF/, "") // 去除 BOM
+            .replace(/\/\*[\s\S]*?\*\//g, "") // 去除多行注释
+            .replace(/^\s+|\s+$/g, ""); // 去除首尾空白
+          config = JSON.parse(this.cleanJsonText(cleaned));
+        }
+      }
 
       // 递归解析子源(如果启用)
       if (source.isRecursive && this.shouldRecurse(source, currentDepth)) {
