@@ -57,3 +57,6 @@ deploy*.bat
 
 # Development
 dev_server*.log
+
+# Config test files
+config/test_*.json
