@@ -1,0 +1,141 @@
+[
+  {
+    "id": "qiaoji",
+    "name": "巧技源",
+    "url": "http://cdn.qiaoji8.com/tvbox.json",
+    "priority": 100,
+    "tags": ["推荐", "稳定", "已验证", "2026.01"],
+    "isRecursive": false,
+    "maxDepth": 0,
+    "enabled": true
+  },
+  {
+    "id": "thdjk",
+    "name": "挺好分享",
+    "url": "https://ztha.top/TVBox/thdjk.json",
+    "priority": 95,
+    "tags": ["推荐", "已验证", "2026.01"],
+    "isRecursive": false,
+    "maxDepth": 0,
+    "enabled": true
+  },
+  {
+    "id": "xiaomis",
+    "name": "小盒子",
+    "url": "http://xhztv.top/dc",
+    "priority": 90,
+    "tags": ["多仓", "不稳定"],
+    "isRecursive": true,
+    "maxDepth": 3,
+    "enabled": false
+  },
+  {
+    "id": "duhe",
+    "name": "毒盒",
+    "url": "https://毒盒.com/tv",
+    "priority": 85,
+    "tags": ["不稳定"],
+    "isRecursive": false,
+    "maxDepth": 0,
+    "enabled": false
+  },
+  {
+    "id": "fantaiying",
+    "name": "饭太硬",
+    "url": "http://www.饭太硬.net/tv",
+    "priority": 80,
+    "tags": ["返回二进制"],
+    "isRecursive": false,
+    "enabled": false
+  },
+  {
+    "id": "femaocom",
+    "name": "肥猫",
+    "url": "http://肥猫.com",
+    "priority": 75,
+    "tags": ["返回HTML"],
+    "isRecursive": false,
+    "enabled": false
+  },
+  {
+    "id": "ouge",
+    "name": "欧歌TV",
+    "url": "http://tv.nxog.top/m",
+    "priority": 70,
+    "tags": ["返回空"],
+    "isRecursive": false,
+    "enabled": false
+  },
+  {
+    "id": "wangxiaoer",
+    "name": "王小二",
+    "url": "http://tvbox.xn--4kq62z5rby2qupq9ub.top/",
+    "priority": 65,
+    "tags": ["返回空"],
+    "isRecursive": false,
+    "enabled": false
+  },
+  {
+    "id": "sty",
+    "name": "STY源",
+    "url": "https://raw.liucn.cc/box/m.json",
+    "priority": 60,
+    "tags": ["返回空"],
+    "isRecursive": false,
+    "enabled": false
+  },
+  {
+    "id": "ray",
+    "name": "Ray",
+    "url": "https://100km.top/0",
+    "priority": 55,
+    "tags": ["返回空"],
+    "isRecursive": false,
+    "enabled": false
+  },
+  {
+    "id": "ok321",
+    "name": "OK杰克",
+    "url": "http://ok321.top/ok",
+    "priority": 50,
+    "tags": ["返回空"],
+    "isRecursive": false,
+    "enabled": false
+  },
+  {
+    "id": "moyuer",
+    "name": "摸鱼儿",
+    "url": "http://我不是.摸鱼儿.com",
+    "priority": 45,
+    "tags": ["返回空"],
+    "isRecursive": false,
+    "enabled": false
+  },
+  {
+    "id": "gaotianliuyun",
+    "name": "高天流云",
+    "url": "https://raw.githubusercontent.com/gaotianliuyun/gao/master/0828.json",
+    "priority": 40,
+    "tags": ["GitHub", "格式错误"],
+    "isRecursive": false,
+    "enabled": false
+  },
+  {
+    "id": "tvplayer",
+    "name": "TV-Player",
+    "url": "https://raw.githubusercontent.com/tv-player/TvBox/main/tvbox.json",
+    "priority": 35,
+    "tags": ["GitHub", "格式错误"],
+    "isRecursive": false,
+    "enabled": false
+  },
+  {
+    "id": "weixine",
+    "name": "运输车",
+    "url": "https://weixine.net/ysc.json",
+    "priority": 30,
+    "tags": ["返回空"],
+    "isRecursive": false,
+    "enabled": false
+  }
+]
