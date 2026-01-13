@@ -212,6 +212,28 @@ export class SourceValidatorService {
         }
       }
 
+      // 检测并处理多仓索引格式（urls[] 格式）
+      if (Array.isArray(config.urls) && config.urls.length > 0) {
+        console.log(
+          `[Multi-Repo Index] Detected ${config.urls.length} sub-sources, fetching recursively...`
+        );
+
+        // 自动递归解析多仓索引
+        if (source.isRecursive && this.shouldRecurse(source, currentDepth)) {
+          const mergedConfig = await this.fetchMultiRepoIndex(
+            config.urls,
+            source,
+            currentDepth,
+            visitedUrls,
+            path
+          );
+          return mergedConfig;
+        } else {
+          // 如果未启用递归，返回空配置（DEGRADED）
+          return { sites: [], lives: [], parses: [] };
+        }
+      }
+
       // 递归解析子源(如果启用)
       if (source.isRecursive && this.shouldRecurse(source, currentDepth)) {
         const mergedConfig = await this.fetchAndMergeSubsources(
@@ -356,6 +378,105 @@ export class SourceValidatorService {
 
     // 去重
     return [...new Set(urls)];
+  }
+
+  /**
+   * 处理多仓索引格式（urls[] 格式）
+   * 例如: {"urls": [{"name": "源1", "url": "http://..."}, ...]}
+   */
+  private async fetchMultiRepoIndex(
+    urlsArray: Array<{ name: string; url: string }>,
+    parentSource: ConfigSource,
+    currentDepth: number,
+    visitedUrls: Set<string>,
+    path: string[]
+  ): Promise<any> {
+    console.log(
+      `[Multi-Repo Index] Processing ${urlsArray.length} sources at depth ${currentDepth}`
+    );
+
+    // 并发获取所有子配置
+    const results = await Promise.allSettled(
+      urlsArray.map(async (urlItem) => {
+        const normalizedUrl = this.normalizeUrl(urlItem.url);
+
+        // URL 去重检查
+        if (visitedUrls.has(normalizedUrl)) {
+          console.warn(
+            `[Multi-Repo Index] Circular reference detected:\n` +
+              `  URL: ${normalizedUrl}\n` +
+              `  Skipping duplicate`
+          );
+          return null;
+        }
+
+        // 深度限制检查
+        const effectiveMaxDepth = parentSource.maxDepth ?? 2;
+        if (currentDepth + 1 > effectiveMaxDepth) {
+          console.warn(
+            `[Multi-Repo Index] Max depth ${effectiveMaxDepth} reached at depth ${currentDepth + 1}:\n` +
+              `  URL: ${normalizedUrl}\n` +
+              `  Skipping to respect depth limit`
+          );
+          return null;
+        }
+
+        console.log(
+          `[Multi-Repo Index] Fetching: ${urlItem.name} (${normalizedUrl})`
+        );
+
+        // 构造虚拟 ConfigSource 对象
+        const subSource = new ConfigSource(
+          `${parentSource.id}_multi_${currentDepth + 1}_${urlItem.name.replace(/\s+/g, "_")}`,
+          urlItem.name,
+          urlItem.url,
+          parentSource.priority,
+          parentSource.tags,
+          parentSource.status,
+          parentSource.lastChecked,
+          parentSource.responseTime,
+          parentSource.isRecursive,
+          parentSource.maxDepth,
+          parentSource.enabled
+        );
+
+        try {
+          // 递归调用
+          return await this.fetchAndValidate(
+            subSource,
+            currentDepth + 1,
+            visitedUrls,
+            [...path, normalizedUrl]
+          );
+        } catch (error) {
+          // 捕获错误并继续处理其他源
+          console.error(
+            `[Multi-Repo Index] Failed to fetch ${urlItem.name}:`,
+            error.message
+          );
+          return null;
+        }
+      })
+    );
+
+    // 提取成功的子配置
+    const childConfigs = results
+      .filter((r) => r.status === "fulfilled" && r.value !== null)
+      .map((r) => (r as PromiseFulfilledResult<any>).value);
+
+    if (childConfigs.length === 0) {
+      console.warn(
+        `[Multi-Repo Index] No valid configs fetched from ${urlsArray.length} sources`
+      );
+      return { sites: [], lives: [], parses: [] };
+    }
+
+    console.log(
+      `[Multi-Repo Index] Successfully fetched ${childConfigs.length}/${urlsArray.length} sources`
+    );
+
+    // 合并所有子配置
+    return this.mergeChildConfigs({}, childConfigs);
   }
 
   /**
