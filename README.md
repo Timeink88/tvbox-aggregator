@@ -53,7 +53,20 @@ deno task deploy
 GET /api/config
 ```
 
-响应示例：
+**查询参数:**
+
+| 参数 | 类型 | 默认值 | 说明 |
+|-----|------|--------|------|
+| `includeContent` | boolean | `true` | 是否返回合并后的 TVBox JSON 配置 |
+| `tags` | string | - | 标签过滤(逗号分隔),如 `tags=推荐,稳定` |
+| `minPriority` | number | - | 最小优先级(0-100),如 `minPriority=80` |
+| `excludeFailed` | boolean | `false` | 是否排除失败的源 |
+| `maxSources` | number | - | 最大源数量 |
+| `enableRecursive` | boolean | `true` | 是否启用递归解析子源配置,设为 `false` 只获取第一层配置 |
+| `maxDepthOverride` | number | - | 覆盖源配置中的最大递归深度,如 `maxDepthOverride=2` |
+
+**响应示例:**
+
 ```json
 {
   "version": "2025-01-11",
@@ -61,16 +74,67 @@ GET /api/config
     {
       "name": "饭太硬",
       "url": "http://www.xn--sss604efuw.com/tv/",
-      "icon": "...",
       "priority": 100,
       "status": "healthy"
     }
   ],
-  "total": 95,
-  "healthy": 58,
+  "total": 7,
+  "healthySources": 5,
+  "merged_config": {
+    "sites": [
+      {
+        "key": "cnbe",
+        "name": "哔哩",
+        "type": 3,
+        "api": "csp_Bili",
+        "searchable": 1
+      }
+    ],
+    "lives": [
+      {
+        "name": "央视1",
+        "group": "央视",
+        "urls": ["http://example.com/live1.m3u8"]
+      }
+    ],
+    "parses": [
+      {
+        "name": "JSON",
+        "type": "json",
+        "url": "https://example.com/parse"
+      }
+    ],
+    "spider": "https://example.com/jar.jar",
+    "wallpaper": "https://example.com/bg.jpg"
+  },
   "generatedAt": "2025-01-11T12:00:00Z",
   "cacheTTL": 3600
 }
+```
+
+**关键变更说明(自 2025-01-13):**
+
+- ✅ `includeContent` 默认值从 `false` 改为 `true`
+- ✅ 默认请求会返回完整的 `merged_config` 字段
+- ✅ 向后兼容:显式传递 `includeContent=false` 可禁用合并
+
+**使用示例:**
+
+```bash
+# 新默认行为:返回合并配置
+curl "http://localhost:8000/api/config"
+
+# 禁用合并:只返回源列表
+curl "http://localhost:8000/api/config?includeContent=false"
+
+# 禁用递归解析:只获取第一层配置
+curl "http://localhost:8000/api/config?enableRecursive=false"
+
+# 限制递归深度:最多递归2层
+curl "http://localhost:8000/api/config?maxDepthOverride=2"
+
+# 组合使用:只获取高优先级源并合并,限制递归深度
+curl "http://localhost:8000/api/config?minPriority=90&maxDepthOverride=1"
 ```
 
 ### 获取健康状态

@@ -9,14 +9,47 @@ export class SourceValidatorService {
   private readonly FULL_TIMEOUT = 15000; // 完整验证超时 15秒
 
   /**
-   * 获取并验证源配置（优化版：更宽松的验证）
+   * 获取并验证源配置(支持递归解析子源)
+   * @param source 配置源
+   * @param currentDepth 当前递归深度(从0开始)
+   * @param visitedUrls 已访问URL集合(用于循环引用检测)
+   * @param path 当前解析路径(用于调试和循环引用追踪)
    */
-  async fetchAndValidate(source: ConfigSource): Promise<any> {
+  async fetchAndValidate(
+    source: ConfigSource,
+    currentDepth: number = 0,
+    visitedUrls: Set<string> = new Set<string>(),
+    path: string[] = []
+  ): Promise<any> {
+    // 规范化 URL
+    const normalizedUrl = this.normalizeUrl(source.url);
+
+    // URL 去重检查 - 防止循环引用
+    if (visitedUrls.has(normalizedUrl)) {
+      console.warn(
+        `[Circular Reference] Detected: ${normalizedUrl}\n` +
+        `  Path: ${path.join(" -> ")} -> ${normalizedUrl}\n` +
+        `  Skipping to prevent infinite recursion`
+      );
+      throw new Error(`Circular reference detected: ${normalizedUrl}`);
+    }
+
+    // 标记为已访问
+    visitedUrls.add(normalizedUrl);
+
+    // 更新路径
+    const currentPath = [...path, normalizedUrl];
+
     const startTime = Date.now();
 
     try {
-      // 两阶段验证（简化版）
-      const result = await this.validateWithOptimizedStages(source);
+      // 两阶段验证(简化版)
+      const result = await this.validateWithOptimizedStages(
+        source,
+        currentDepth,
+        visitedUrls,
+        currentPath
+      );
 
       const responseTime = Date.now() - startTime;
       source.updateStatus(result.status, responseTime);
@@ -44,9 +77,14 @@ export class SourceValidatorService {
   }
 
   /**
-   * 优化的两阶段验证流程
+   * 优化的两阶段验证流程(支持递归解析)
    */
-  private async validateWithOptimizedStages(source: ConfigSource): Promise<{
+  private async validateWithOptimizedStages(
+    source: ConfigSource,
+    currentDepth: number,
+    visitedUrls: Set<string>,
+    path: string[]
+  ): Promise<{
     status: SourceStatus;
     config?: any;
   }> {
@@ -61,7 +99,13 @@ export class SourceValidatorService {
 
     // 阶段2: 完整内容验证
     try {
-      const config = await this.fullContentRequest(source.url);
+      const config = await this.fullContentRequest(
+        source.url,
+        source,
+        currentDepth,
+        visitedUrls,
+        path
+      );
       if (config && this.isValidTVBoxConfig(config)) {
         return { status: SourceStatus.HEALTHY, config };
       } else {
@@ -106,9 +150,15 @@ export class SourceValidatorService {
   }
 
   /**
-   * 完整内容请求
+   * 完整内容请求(支持递归解析子源)
    */
-  private async fullContentRequest(url: string): Promise<any> {
+  private async fullContentRequest(
+    url: string,
+    source: ConfigSource,
+    currentDepth: number,
+    visitedUrls: Set<string>,
+    path: string[]
+  ): Promise<any> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.FULL_TIMEOUT);
 
@@ -127,7 +177,21 @@ export class SourceValidatorService {
 
       // 清理并解析JSON
       const clean = this.cleanJsonText(text);
-      return JSON.parse(clean);
+      const config = JSON.parse(clean);
+
+      // 递归解析子源(如果启用)
+      if (source.isRecursive && this.shouldRecurse(source, currentDepth)) {
+        const mergedConfig = await this.fetchAndMergeSubsources(
+          config,
+          source,
+          currentDepth,
+          visitedUrls,
+          path
+        );
+        return mergedConfig;
+      }
+
+      return config;
     } catch (error) {
       clearTimeout(timeoutId);
       throw error;
@@ -189,5 +253,305 @@ export class SourceValidatorService {
     joined = joined.replace(/,\s*}/g, "}").replace(/,\s*]/g, "]");
 
     return joined;
+  }
+
+  /**
+   * 规范化 URL (用于去重和循环引用检测)
+   */
+  private normalizeUrl(url: string): string {
+    // 去除尾部斜杠
+    let normalized = url.replace(/\/+$/, "");
+
+    // 转换为小写(某些服务器可能忽略大小写)
+    normalized = normalized.toLowerCase();
+
+    // 移除常见的 URL 参数(如果需要)
+    // normalized = normalized.split("?")[0];
+
+    return normalized;
+  }
+
+  /**
+   * 判断是否应该继续递归
+   */
+  private shouldRecurse(source: ConfigSource, currentDepth: number): boolean {
+    // maxDepth 为 0 时禁用递归
+    if (source.maxDepth === 0) {
+      return false;
+    }
+
+    // maxDepth 为 null/undefined 时默认使用 2
+    const effectiveMaxDepth = source.maxDepth ?? 2;
+
+    // 当前深度小于最大深度时继续递归
+    return currentDepth < effectiveMaxDepth;
+  }
+
+  /**
+   * 从配置中提取子源URL
+   */
+  private extractSubsourceUrls(config: any): string[] {
+    const urls: string[] = [];
+    const urlPattern = /^https?:\/\//;
+
+    // 1. 检测 spider 字段
+    if (config.spider) {
+      if (typeof config.spider === "string") {
+        if (urlPattern.test(config.spider)) {
+          urls.push(config.spider);
+        }
+      } else if (Array.isArray(config.spider)) {
+        config.spider.forEach((s: string) => {
+          if (typeof s === "string" && urlPattern.test(s)) {
+            urls.push(s);
+          }
+        });
+      }
+    }
+
+    // 2. 检测 sites 数组中的 ext 字段
+    if (Array.isArray(config.sites)) {
+      config.sites.forEach((site: any) => {
+        if (site.ext && typeof site.ext === "string") {
+          // 检查是否以 http:// 或 https:// 开头
+          if (site.ext.startsWith("http://") || site.ext.startsWith("https://")) {
+            urls.push(site.ext);
+          }
+        }
+      });
+    }
+
+    // 去重
+    return [...new Set(urls)];
+  }
+
+  /**
+   * 递归获取并合并子源配置
+   */
+  private async fetchAndMergeSubsources(
+    parentConfig: any,
+    parentSource: ConfigSource,
+    currentDepth: number,
+    visitedUrls: Set<string>,
+    path: string[]
+  ): Promise<any> {
+    // 提取子源URL
+    const subsourceUrls = this.extractSubsourceUrls(parentConfig);
+
+    if (subsourceUrls.length === 0) {
+      return parentConfig;
+    }
+
+    console.log(
+      `[Recursive] Depth ${currentDepth}: Found ${subsourceUrls.length} subsources`
+    );
+
+    // 并发获取子配置
+    const results = await Promise.allSettled(
+      subsourceUrls.map(async (url) => {
+        const normalizedUrl = this.normalizeUrl(url);
+
+        // URL 去重检查 - 已在 fetchAndValidate 入口处检查,此处仅用于日志
+        if (visitedUrls.has(normalizedUrl)) {
+          console.warn(
+            `[Recursive] Circular reference detected at depth ${currentDepth}:\n` +
+            `  URL: ${normalizedUrl}\n` +
+            `  Path: ${path.join(" -> ")} -> ${normalizedUrl}\n` +
+            `  Skipping duplicate URL`
+          );
+          return null;
+        }
+
+        // 深度限制检查
+        const effectiveMaxDepth = parentSource.maxDepth ?? 2;
+        if (currentDepth + 1 > effectiveMaxDepth) {
+          console.warn(
+            `[Recursive] Max depth ${effectiveMaxDepth} reached at depth ${currentDepth + 1}:\n` +
+            `  URL: ${normalizedUrl}\n` +
+            `  Path: ${path.join(" -> ")}\n` +
+            `  Skipping to respect depth limit`
+          );
+          return null;
+        }
+
+        // 递归调用前记录调试日志
+        console.debug(
+          `[Recursive] Recursing into ${normalizedUrl} at depth ${currentDepth + 1}\n` +
+          `  Path: ${path.join(" -> ")} -> ${normalizedUrl}`
+        );
+
+        // 构造虚拟 ConfigSource 对象
+        const subSource = new ConfigSource(
+          `${parentSource.id}_sub_${currentDepth + 1}_${url.length}`,
+          `Subsource of ${parentSource.name}`,
+          url,
+          parentSource.priority,
+          parentSource.tags,
+          parentSource.status,
+          parentSource.lastChecked,
+          parentSource.responseTime,
+          parentSource.isRecursive,
+          parentSource.maxDepth,
+          parentSource.enabled
+        );
+
+        try {
+          // 递归调用(传递更新后的路径)
+          return await this.fetchAndValidate(
+            subSource,
+            currentDepth + 1,
+            visitedUrls,
+            [...path, normalizedUrl]
+          );
+        } catch (error) {
+          // 捕获循环引用等错误并继续处理
+          if (error.message.includes("Circular reference")) {
+            console.warn(`[Recursive] Skipping circular reference: ${normalizedUrl}`);
+          } else {
+            console.error(`[Recursive] Failed to fetch ${normalizedUrl}:`, error.message);
+          }
+          return null;
+        }
+      })
+    );
+
+    // 提取成功的子配置
+    const childConfigs = results
+      .filter((r) => r.status === "fulfilled" && r.value !== null)
+      .map((r) => (r as PromiseFulfilledResult<any>).value);
+
+    if (childConfigs.length === 0) {
+      return parentConfig;
+    }
+
+    console.log(
+      `[Recursive] Depth ${currentDepth}: Merged ${childConfigs.length} child configs`
+    );
+
+    // 合并子配置到父配置
+    return this.mergeChildConfigs(parentConfig, childConfigs);
+  }
+
+  /**
+   * 将子配置合并到父配置(平面合并策略)
+   */
+  private mergeChildConfigs(parentConfig: any, childConfigs: any[]): any {
+    const merged = { ...parentConfig };
+
+    // 合并 sites (按 key 去重,子配置优先)
+    if (Array.isArray(merged.sites) || childConfigs.some((c) => Array.isArray(c.sites))) {
+      const sitesMap = new Map<string, any>();
+
+      // 先添加父级 sites
+      if (Array.isArray(merged.sites)) {
+        merged.sites.forEach((site: any) => {
+          if (site.key) {
+            sitesMap.set(site.key, site);
+          }
+        });
+      }
+
+      // 再添加子级 sites (会覆盖父级)
+      childConfigs.forEach((config) => {
+        if (Array.isArray(config.sites)) {
+          config.sites.forEach((site: any) => {
+            if (site.key) {
+              sitesMap.set(site.key, site);
+            }
+          });
+        }
+      });
+
+      merged.sites = Array.from(sitesMap.values());
+    }
+
+    // 合并 lives (按 name 去重,子配置优先)
+    if (Array.isArray(merged.lives) || childConfigs.some((c) => Array.isArray(c.lives))) {
+      const livesMap = new Map<string, any>();
+
+      if (Array.isArray(merged.lives)) {
+        merged.lives.forEach((live: any) => {
+          if (live.name) {
+            livesMap.set(live.name, live);
+          }
+        });
+      }
+
+      childConfigs.forEach((config) => {
+        if (Array.isArray(config.lives)) {
+          config.lives.forEach((live: any) => {
+            if (live.name) {
+              livesMap.set(live.name, live);
+            }
+          });
+        }
+      });
+
+      merged.lives = Array.from(livesMap.values());
+    }
+
+    // 合并 parses (按 name 去重,子配置优先)
+    if (Array.isArray(merged.parses) || childConfigs.some((c) => Array.isArray(c.parses))) {
+      const parsesMap = new Map<string, any>();
+
+      if (Array.isArray(merged.parses)) {
+        merged.parses.forEach((parse: any) => {
+          if (parse.name) {
+            parsesMap.set(parse.name, parse);
+          }
+        });
+      }
+
+      childConfigs.forEach((config) => {
+        if (Array.isArray(config.parses)) {
+          config.parses.forEach((parse: any) => {
+            if (parse.name) {
+              parsesMap.set(parse.name, parse);
+            }
+          });
+        }
+      });
+
+      merged.parses = Array.from(parsesMap.values());
+    }
+
+    // 合并 spider (扁平化数组,去重)
+    const spiderSet = new Set<string>();
+
+    const collectSpider = (spider: any) => {
+      if (typeof spider === "string") {
+        spiderSet.add(spider);
+      } else if (Array.isArray(spider)) {
+        spider.forEach((s: string) => {
+          if (typeof s === "string") {
+            spiderSet.add(s);
+          }
+        });
+      }
+    };
+
+    if (merged.spider) {
+      collectSpider(merged.spider);
+    }
+
+    childConfigs.forEach((config) => {
+      if (config.spider) {
+        collectSpider(config.spider);
+      }
+    });
+
+    if (spiderSet.size > 0) {
+      merged.spider = Array.from(spiderSet);
+    }
+
+    // wallpaper 直接覆盖(子配置优先)
+    for (const config of childConfigs) {
+      if (config.wallpaper) {
+        merged.wallpaper = config.wallpaper;
+        break;
+      }
+    }
+
+    return merged;
   }
 }

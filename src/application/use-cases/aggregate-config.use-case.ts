@@ -48,6 +48,16 @@ export interface AggregateOptions {
   excludeTags?: string[];
   cacheStrategy?: "aggressive" | "balanced" | "minimal";
   includeContent?: boolean;
+  /**
+   * 是否启用递归解析,默认为 true
+   * 当设置为 false 时,只获取第一层配置,不解析子源
+   */
+  enableRecursive?: boolean;
+  /**
+   * 覆盖源配置中的 maxDepth 设置
+   * 如果指定,将替代 sources.json 中定义的 maxDepth 值
+   */
+  maxDepthOverride?: number;
 }
 
 export interface AggregatedConfig {
@@ -74,11 +84,16 @@ export class AggregateConfigUseCase {
   async execute(options: AggregateOptions = {}): Promise<AggregatedConfig> {
     const startTime = Date.now();
 
-    // 默认不排除失败的源，确保返回所有启用的源及其状态
+    // 默认启用配置合并,返回完整的 TVBox JSON 配置内容
     const effectiveOptions = {
       ...options,
       excludeFailed: options.excludeFailed ?? false,
-      includeContent: options.includeContent ?? false,
+      includeContent: options.includeContent ?? true,
+      /**
+       * 默认启用递归解析,符合用户"真正解析"的意图
+       * 仅当显式传递 false 时禁用
+       */
+      enableRecursive: options.enableRecursive ?? true,
     };
 
     // 1. 尝试从缓存获取
@@ -95,10 +110,14 @@ export class AggregateConfigUseCase {
     // 3. 应用过滤规则（获取所有启用的源）
     const filteredSources = this.applyFilters(sources, effectiveOptions);
 
-    // 4. 构建聚合结果（直接返回源列表，包含状态）
+    // 4. 构建聚合结果(直接返回源列表,包含状态)
+    // 按源优先级降序排序,确保响应中的 sources 数组也按优先级排列
+    const sourcesByPriority = filteredSources
+      .sort((a, b) => b.priority - a.priority);
+
     const result: AggregatedConfig = {
       version: new Date().toISOString().split("T")[0],
-      sources: filteredSources.map((source) => ({
+      sources: sourcesByPriority.map((source) => ({
         name: source.name,
         url: source.url,
         priority: source.priority,
@@ -114,7 +133,34 @@ export class AggregateConfigUseCase {
     if (effectiveOptions.includeContent) {
       try {
         const validator = new SourceValidatorService();
-        const configs = await this.fetchValidConfigs(filteredSources, validator);
+
+        // 处理递归控制参数
+        let sourcesToFetch = sourcesByPriority;
+
+        // 如果禁用递归,临时禁用所有源的递归设置
+        if (effectiveOptions.enableRecursive === false) {
+          console.log("[Aggregate] Recursive parsing disabled by client request");
+          sourcesToFetch = sourcesByPriority.map(source => {
+            // 创建源的副本并禁用递归
+            const modifiedSource = Object.assign(Object.create(Object.getPrototypeOf(source)), source);
+            modifiedSource.isRecursive = false;
+            return modifiedSource;
+          });
+        }
+
+        // 如果指定了 maxDepthOverride,覆盖源的 maxDepth 设置
+        if (effectiveOptions.maxDepthOverride !== undefined) {
+          console.log(`[Aggregate] Max depth override: ${effectiveOptions.maxDepthOverride}`);
+          sourcesToFetch = sourcesToFetch.map(source => {
+            // 创建源的副本并覆盖最大深度
+            const modifiedSource = Object.assign(Object.create(Object.getPrototypeOf(source)), source);
+            modifiedSource.maxDepth = effectiveOptions.maxDepthOverride!;
+            return modifiedSource;
+          });
+        }
+
+        // 使用处理后的 sources 数组,确保高优先级源的配置优先保留
+        const configs = await this.fetchValidConfigs(sourcesToFetch, validator);
         if (configs.length > 0) {
           result.merged_config = this.mergeConfigs(configs);
           console.log(`[Aggregate] Merged ${configs.length} configs`);
