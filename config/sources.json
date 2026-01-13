@@ -2,7 +2,7 @@
   {
     "id": "fantaiying",
     "name": "饭太硬",
-    "url": "http://www.xn--sss604efuw.com/tv/",
+    "url": "http://www.饭太硬.com/tv/",
     "priority": 100,
     "tags": ["推荐", "稳定", "点播"],
     "isRecursive": true,
@@ -10,60 +10,125 @@
     "enabled": true
   },
   {
-    "id": "qingning",
-    "name": "青柠",
-    "url": "https://github.com/Zhou-Li-Bin/Tvbox-QingNing/raw/main/json/green.json",
+    "id": "femaocom",
+    "name": "肥猫",
+    "url": "http://肥猫.com/",
     "priority": 95,
-    "tags": ["GitHub", "多仓", "推荐"],
+    "tags": ["推荐", "稳定"],
+    "isRecursive": true,
+    "maxDepth": 2,
+    "enabled": true
+  },
+  {
+    "id": "duhe",
+    "name": "毒盒",
+    "url": "https://毒盒.com/tv",
+    "priority": 90,
+    "tags": ["推荐", "多线路"],
+    "isRecursive": true,
+    "maxDepth": 2,
+    "enabled": true
+  },
+  {
+    "id": "ouge",
+    "name": "欧歌",
+    "url": "http://tv.nxog.top",
+    "priority": 85,
+    "tags": ["多仓", "推荐"],
     "isRecursive": true,
     "maxDepth": 3,
     "enabled": true
   },
   {
+    "id": "xiaomis",
+    "name": "小盒子",
+    "url": "http://xhztv.top/dc",
+    "priority": 80,
+    "tags": ["多仓", "推荐"],
+    "isRecursive": true,
+    "maxDepth": 2,
+    "enabled": true
+  },
+  {
     "id": "weixine",
-    "name": "weixine",
+    "name": "运输车",
     "url": "https://weixine.net/ysc.json",
-    "priority": 90,
+    "priority": 75,
     "tags": ["直播", "稳定"],
     "isRecursive": false,
     "enabled": true
   },
   {
-    "id": "feimao-github",
-    "name": "肥猫镜像",
-    "url": "https://github.com/Ftindy/IPTV/raw/main/json/ft.json",
-    "priority": 85,
-    "tags": ["GitHub", "备用"],
+    "id": "gaotianliuyun",
+    "name": "高天流云",
+    "url": "https://mirror.ghproxy.com/raw.githubusercontent.com/gaotianliuyun/gao/master/0825.json",
+    "priority": 70,
+    "tags": ["GitHub", "代理"],
     "isRecursive": false,
     "enabled": true
   },
   {
-    "id": "gitlab-apps",
-    "name": "GitLab Apps",
-    "url": "https://gitlab.com/duomv/apps/-/raw/main/fast.json",
-    "priority": 80,
-    "tags": ["GitLab", "多仓"],
-    "isRecursive": true,
-    "maxDepth": 2,
-    "enabled": true
-  },
-  {
-    "id": "agit-apps",
-    "name": "Agit Apps",
-    "url": "https://agit.ai/leevi/apps/raw/branch/main/fast.json",
-    "priority": 75,
-    "tags": ["Agit", "国内", "多仓"],
-    "isRecursive": true,
-    "maxDepth": 2,
-    "enabled": true
-  },
-  {
-    "id": "tv58888",
-    "name": "TV58888",
-    "url": "https://raw.githubusercontent.com/tv58888/tvbox/main/json/tv.json",
-    "priority": 70,
+    "id": "yoursmile",
+    "name": "可可影视",
+    "url": "https://ghproxy.net/https://raw.githubusercontent.com/yoursmile66/TVBox/main/XC.json",
+    "priority": 65,
     "tags": ["GitHub", "推荐"],
     "isRecursive": false,
     "enabled": true
+  },
+  {
+    "id": "xyq254",
+    "name": "香雅情",
+    "url": "https://github.moeyy.xyz/https://raw.githubusercontent.com/xyq254245/xyqonlinerule/main/XYQTVBox.json",
+    "priority": 60,
+    "tags": ["GitHub", "多仓"],
+    "isRecursive": true,
+    "maxDepth": 2,
+    "enabled": true
+  },
+  {
+    "id": "tangbmp",
+    "name": "唐三",
+    "url": "https://gh.t4tv.hz.cz/newtang.bmp",
+    "priority": 55,
+    "tags": ["推荐"],
+    "isRecursive": false,
+    "enabled": true
+  },
+  {
+    "id": "mpanso",
+    "name": "盘搜",
+    "url": "https://www.mpanso.com/小米/DEMO.json",
+    "priority": 50,
+    "tags": ["多仓"],
+    "isRecursive": false,
+    "enabled": false
+  },
+  {
+    "id": "ok321",
+    "name": "OK321",
+    "url": "http://ok321.top/tv",
+    "priority": 45,
+    "tags": ["备用"],
+    "isRecursive": false,
+    "enabled": false
+  },
+  {
+    "id": "yydsys",
+    "name": "多多",
+    "url": "http://yydsys.top/duo",
+    "priority": 40,
+    "tags": ["备用"],
+    "isRecursive": false,
+    "enabled": false
+  },
+  {
+    "id": "cainisi",
+    "name": "彩妮色",
+    "url": "https://tvbox.cainisi.cf",
+    "priority": 35,
+    "tags": ["备用"],
+    "isRecursive": false,
+    "enabled": false
   }
 ]
