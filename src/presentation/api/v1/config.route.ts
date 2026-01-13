@@ -7,10 +7,8 @@ import { AggregateConfigUseCase, AggregateOptions } from "../../../application/u
 export function createConfigRoute(useCase: AggregateConfigUseCase): Router {
   const router = new Router();
 
-  router.prefix("/api");
-
   // GET /api/config - 获取聚合配置
-  router.get("/config", async (ctx) => {
+  router.get("/api/config", async (ctx) => {
     try {
       // 解析查询参数
       const options: AggregateOptions = {

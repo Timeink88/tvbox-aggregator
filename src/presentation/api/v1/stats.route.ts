@@ -7,10 +7,8 @@ import { CacheManagerService, CacheStats } from "../../../application/services/c
 export function createStatsRoute(cacheService: CacheManagerService): Router {
   const router = new Router();
 
-  router.prefix("/api");
-
   // GET /api/stats - 获取系统统计
-  router.get("/stats", async (ctx) => {
+  router.get("/api/stats", async (ctx) => {
     try {
       const cacheStats = cacheService.getStats();
 

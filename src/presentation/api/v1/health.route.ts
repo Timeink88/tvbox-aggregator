@@ -7,10 +7,8 @@ import { HealthCheckUseCase } from "../../../application/use-cases/health-check.
 export function createHealthRoute(useCase: HealthCheckUseCase): Router {
   const router = new Router();
 
-  router.prefix("/api");
-
   // GET /api/health - 获取健康状态
-  router.get("/health", async (ctx) => {
+  router.get("/api/health", async (ctx) => {
     try {
       const report = await useCase.checkAllSources();
 
@@ -29,7 +27,7 @@ export function createHealthRoute(useCase: HealthCheckUseCase): Router {
   });
 
   // POST /api/health/check - 触发健康检查
-  router.post("/health/check", async (ctx) => {
+  router.post("/api/health/check", async (ctx) => {
     try {
       // 异步执行健康检查
       const taskId = `check-${Date.now()}`;
